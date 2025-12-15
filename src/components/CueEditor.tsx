@@ -33,6 +33,37 @@ export const CueEditor: React.FC = () => {
         }));
     };
 
+    React.useEffect(() => {
+        const setAppTitle = async () => {
+            try {
+                const version = await (window as any).ipcRenderer.invoke('getAppVersion');
+                document.title = `CUEsto ${version}`;
+            } catch (e) {
+                console.error('Failed to get app version', e);
+            }
+        };
+        setAppTitle();
+
+        // Listen for file-opened event from main process (File Association)
+        (window as any).ipcRenderer.on('file-opened', (_: any, data: { content: string, filePath: string }) => {
+            if (data && data.content) {
+                const parsed = parseCue(data.content);
+                // Ensure parsed object has the correct filepath if provided, otherwise parsed might be empty on file
+                if (data.filePath) parsed.file = parsed.file || data.filePath; // Or preserve parsed? usually parsed.file is AUDIO file from content.
+                // We want to store the "filepath of the CUE sheet" somewhere if we were tracking "current file".
+                // But currently we don't track "current CUE file path", only "audio file name" inside cue.
+                // WE SHOULD probably parse it.
+                setCue(parsed);
+                // Also update title?
+            }
+        });
+
+        // Cleanup? 
+        return () => {
+            (window as any).ipcRenderer.removeAllListeners('file-opened');
+        };
+    }, []);
+
     const handleTrackUpdate = (index: number, field: keyof CueTrack, value: any) => {
         setCue(prev => {
             const newTracks = [...prev.tracks];
@@ -161,7 +192,7 @@ export const CueEditor: React.FC = () => {
             {/* Brand Header */}
             <div className="flex justify-center py-6">
                 <h1 className="text-4xl font-bold flex items-center gap-2">
-                    <img src="/images/logo.png" alt="CUEsto Logo" className="h-20 w-auto" />
+                    <img src="images/logo.png" alt="CUEsto Logo" className="h-20 w-auto" />
                 </h1>
             </div>
 

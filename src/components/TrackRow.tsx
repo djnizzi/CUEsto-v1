@@ -25,7 +25,7 @@ export const TrackRow: React.FC<TrackRowProps> = ({
     return (
         <div className="flex items-center gap-2 py-1 text-brand-text">
             {/* Index */}
-            <div className="w-8 text-center text-gray-400 text-sm">{index + 1}</div>
+            <div className="w-8 text-center text-brand-text text-sm">{index + 1}</div>
 
             {/* Title */}
             <div className="flex-1">

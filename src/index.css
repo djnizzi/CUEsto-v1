@@ -62,3 +62,17 @@ input::placeholder {
   color: var(--color-brand-placeholder) !important;
   opacity: 1;
 }
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-brand-orange);
+  border-radius: 50px;
+}

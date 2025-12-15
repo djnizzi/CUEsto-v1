@@ -26,6 +26,8 @@
         ]
       }
     ],
+    "icon": "public/cuesto.ico",
+
     "artifactName": "${productName}-Windows-${version}-Setup.${ext}"
   },
   "nsis": {

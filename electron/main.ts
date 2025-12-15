@@ -43,6 +43,10 @@ ipcMain.handle('dialog:saveFile', async (_, content: string, defaultPath?: strin
   return filePath; // return new path
 })
 
+ipcMain.handle('getAppVersion', () => {
+  return app.getVersion();
+});
+
 // ... (keep rest)
 
 // The built directory structure
@@ -77,9 +81,46 @@ function createWindow() {
   })
   win.setMenu(null); // Explicitly remove it
 
-  // Test active push message to Renderer-process.
-  win.webContents.on('did-finish-load', () => {
-    win?.webContents.send('main-process-message', (new Date).toLocaleString())
+  // Handle startup file (Windows File Association)
+  // Usually process.argv[1] is the file path if opened via association.
+  // In dev, 0 is electron, 1 is ., 2 might be file. In prod, 0 is exe, 1 is file.
+  // We need to be careful.
+
+  const getStartupFile = async () => {
+    let filePath = '';
+
+    if (app.isPackaged) {
+      if (process.argv.length >= 2) {
+        filePath = process.argv[1];
+      }
+    } else {
+      // Dev mode: 'electron . filepath'
+      if (process.argv.length >= 3) {
+        filePath = process.argv[2];
+      }
+    }
+
+    if (filePath && (filePath.endsWith('.cue') || filePath.endsWith('.txt'))) {
+      try {
+        const content = await fs.readFile(filePath, 'utf-8');
+        // Wait for React to be ready? 
+        // We can send it when did-finish-load fires.
+        return { content, filePath };
+      } catch (e) {
+        console.error('Failed to read startup file', e);
+      }
+    }
+    return null;
+  };
+
+  win.webContents.on('did-finish-load', async () => {
+    win?.webContents.send('main-process-message', (new Date).toLocaleString());
+
+    // Check and send file
+    const startupData = await getStartupFile();
+    if (startupData) {
+      win?.webContents.send('file-opened', startupData);
+    }
   })
 
   if (VITE_DEV_SERVER_URL) {
