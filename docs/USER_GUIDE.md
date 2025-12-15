@@ -1,0 +1,31 @@
+# CUEsto User Guide
+
+## Introduction
+CUEsto is a dedicated tool for creating and editing CUE sheets with ease. Whether you need to fix track timings, update metadata, or create a sheet from scratch, CUEsto provides a streamlined interface to get the job done.
+
+## Features
+- **Visual Editor**: See your tracks in a clear, table-like layout.
+- **Smart Time Editing**: Automatically recalculates durations when you edit start times.
+- **Metadata Management**: Easily update Album Title, Performer, File references, and more.
+- **Dark Mode**: A sleek, dark interface designed for focus.
+
+## Getting Started
+
+### Opening a CUE Sheet
+1. Launch CUEsto.
+2. Click the **"Open File"** button in the header (folder icon) or use the "Open" button if available in the metadata section.
+3. Select your `.cue` file.
+4. The editor will populate with the tracks and metadata from your file.
+
+### Editing Tracks
+- **Title/Performer**: Click directly on the text fields to edit the track title or performer.
+- **Start Time**: Edit the start time of a track. The duration of the previous track will be automatically recalculated (conceptually), or the track will simply move in timeline.
+- **Duration**: You can also edit the duration of a specific track. Note that changing a track's duration will shift the start times of all subsequent tracks to maintain continuity.
+- **Add/Remove**: Use the **"Add Row"** button at the bottom to add a new track. Click the trash icon next to a track to remove it.
+
+### Saving
+When you are happy with your changes, click the **"Save"** button at the bottom right. A confirmation message will appear confirming that your file has been saved.
+
+## Tips
+- **Time Format**: Times are displayed in `MM:SS:FF` (Frames). CUE sheets use 75 frames per second.
+- **File Reference**: Ensure the "File" field matches the actual audio file name (e.g., `mix.mp3`) so players can find the audio.
