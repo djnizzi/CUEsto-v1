@@ -20,6 +20,11 @@ The application follows a standard Electron implementation with a main process (
 - **`MetadataHeader.tsx`**: Displays and edits global CUE properties like File, Title, Performer, Date, and Genre.
 - **`TimeInput.tsx`**: A specialized input component for handling timestamp formats (MM:SS:FF or HH:MM:SS) securely.
 
+### Utilities
+- **`cueParser.ts`**: Handles parsing of .cue files into state objects and generating string output for saving.
+- **`tracklistParser.ts`**: Implements 1001tracklists.com HTML parsing using the browser's native `DOMParser`. It extracts metadata, tracks, and handles mashup logic (merging sub-tracks).
+- **`timeUtils.ts`**: Helper functions for frame/time conversions (75 frames per second).
+
 ### State Management
 State is largely local to `CueEditor.tsx`, with the `CueSheet` object serving as the single source of truth for the currently open file. Changes flow down to child components via props, and updates bubble up via callbacks.
 

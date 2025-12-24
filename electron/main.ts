@@ -20,20 +20,30 @@ ipcMain.handle('dialog:openFile', async () => {
   }
 })
 
-ipcMain.handle('dialog:saveFile', async (_, content: string, defaultPath?: string) => {
-  // If we have a path, just write? or always ask?
-  // "Save" usually means write to existing. "Save As" means ask.
-  // For now let's implement Save As behavior if no defaultPath, or just write if exists.
-  // But let's assume we want "Save As" behavior primarily for "Save" button if passing undefined?
-  // Or if passing path, write directly.
+ipcMain.handle('dialog:openHtml', async () => {
+  const { canceled, filePaths } = await dialog.showOpenDialog({
+    properties: ['openFile'],
+    filters: [{ name: 'HTML File', extensions: ['html', 'htm'] }]
+  })
+  if (canceled) {
+    return null
+  } else {
+    const content = await fs.readFile(filePaths[0], 'utf-8')
+    return { content, filepath: filePaths[0] }
+  }
+})
 
-  if (defaultPath) {
-    await fs.writeFile(defaultPath, content, 'utf-8');
+ipcMain.handle('dialog:saveFile', async (_, content: string, pathOrSuggestion?: string) => {
+  // If pathOrSuggestion is an absolute path, overwrite.
+  // Otherwise, use it as defaultPath in showSaveDialog.
+
+  if (pathOrSuggestion && path.isAbsolute(pathOrSuggestion)) {
+    await fs.writeFile(pathOrSuggestion, content, 'utf-8');
     return true;
   }
 
   const { canceled, filePath } = await dialog.showSaveDialog({
-    defaultPath: 'untitled.cue',
+    defaultPath: pathOrSuggestion || 'untitled.cue',
     filters: [{ name: 'CUE Sheet', extensions: ['cue'] }]
   });
 
@@ -124,7 +134,13 @@ function createWindow() {
   })
 
   if (VITE_DEV_SERVER_URL) {
+    console.log('Loading DEV server:', VITE_DEV_SERVER_URL)
     win.loadURL(VITE_DEV_SERVER_URL)
+    // win.webContents.openDevTools() // Disabled now that UI issue is resolved
+
+    win.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+      console.error(`Load failed: ${errorCode} ${errorDescription} at ${validatedURL}`);
+    });
   } else {
     // win.loadFile('dist/index.html')
     win.loadFile(path.join(RENDERER_DIST, 'index.html'))

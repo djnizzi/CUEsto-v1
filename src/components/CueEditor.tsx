@@ -3,6 +3,7 @@ import { MetadataHeader } from './MetadataHeader';
 import { TrackRow } from './TrackRow';
 import { CueSheet, CueTrack, generateCue, parseCue } from '../lib/cueParser';
 import { timeToFrames } from '../lib/timeUtils';
+import { parse1001Tracklist } from '../lib/tracklistParser';
 
 // Dummy initial state or empty
 const INITIAL_CUE: CueSheet = {
@@ -20,6 +21,7 @@ const INITIAL_CUE: CueSheet = {
 export const CueEditor: React.FC = () => {
     const [cue, setCue] = useState<CueSheet>(INITIAL_CUE);
     const [showToast, setShowToast] = useState(false);
+    const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
 
     const showSaveToast = () => {
         setShowToast(true);
@@ -34,10 +36,13 @@ export const CueEditor: React.FC = () => {
     };
 
     React.useEffect(() => {
+        console.log('CueEditor mounted');
         const setAppTitle = async () => {
             try {
-                const version = await (window as any).ipcRenderer.invoke('getAppVersion');
-                document.title = `CUEsto ${version}`;
+                if ((window as any).ipcRenderer) {
+                    const version = await (window as any).ipcRenderer.invoke('getAppVersion');
+                    document.title = `CUEsto ${version}`;
+                }
             } catch (e) {
                 console.error('Failed to get app version', e);
             }
@@ -45,22 +50,23 @@ export const CueEditor: React.FC = () => {
         setAppTitle();
 
         // Listen for file-opened event from main process (File Association)
-        (window as any).ipcRenderer.on('file-opened', (_: any, data: { content: string, filePath: string }) => {
-            if (data && data.content) {
-                const parsed = parseCue(data.content);
-                // Ensure parsed object has the correct filepath if provided, otherwise parsed might be empty on file
-                if (data.filePath) parsed.file = parsed.file || data.filePath; // Or preserve parsed? usually parsed.file is AUDIO file from content.
-                // We want to store the "filepath of the CUE sheet" somewhere if we were tracking "current file".
-                // But currently we don't track "current CUE file path", only "audio file name" inside cue.
-                // WE SHOULD probably parse it.
-                setCue(parsed);
-                // Also update title?
-            }
-        });
+        if ((window as any).ipcRenderer) {
+            (window as any).ipcRenderer.on('file-opened', (_: any, data: { content: string, filePath: string }) => {
+                if (data && data.content) {
+                    const parsed = parseCue(data.content);
+                    setCue(parsed);
+                    if (data.filePath) {
+                        setCurrentFilePath(data.filePath);
+                    }
+                }
+            });
+        }
 
         // Cleanup? 
         return () => {
-            (window as any).ipcRenderer.removeAllListeners('file-opened');
+            if ((window as any).ipcRenderer) {
+                (window as any).ipcRenderer.removeAllListeners('file-opened');
+            }
         };
     }, []);
 
@@ -153,25 +159,80 @@ export const CueEditor: React.FC = () => {
 
     const handleOpenFile = async () => {
         try {
+            if (!(window as any).ipcRenderer) return;
             const result = await (window as any).ipcRenderer.invoke('dialog:openFile');
             if (result) {
-                const { content } = result;
+                const { content, filepath } = result;
                 const parsed = parseCue(content);
                 setCue(parsed);
+                setCurrentFilePath(filepath);
             }
         } catch (e) {
             console.error(e);
         }
     };
 
+    const handleImport = async (source: string) => {
+        if (source === '1001tracklists') {
+            try {
+                // Reuse the same dialog:openFile but we need to tell it to filter for HTML?
+                // The current dialog:openFile filters for CUE.
+                // We should probably modify main process to accept filters or add a new 'dialog:openHtml' handler.
+                // Or we can just ask user to pick file and use a generic openFile?
+                // Let's call a new IPC method for clarity: 'dialog:openHtml'
+                // But since I cannot modify main.ts easily without restarting or reloading... 
+                // Wait, I CAN modify main.ts. I should.
+
+                const result = await (window as any).ipcRenderer.invoke('dialog:openHtml');
+                if (result) {
+                    const { content } = result;
+                    const parsed = parse1001Tracklist(content);
+                    setCue(prev => ({
+                        ...parsed,
+                        // Keep existing file/title if valid? No, usually import overwrites.
+                        // Maybe preserve file name if it was already set?
+                        file: prev.file || parsed.file
+                    }));
+                }
+            } catch (e) {
+                console.error('Import failed', e);
+            }
+        } else {
+            console.log('Import source not implemented:', source);
+        }
+    };
+
     const handleSave = async () => {
         const data = generateCue(cue);
         try {
-            // Force Save As behavior by passing undefined as the path
-            const savedPath = await (window as any).ipcRenderer.invoke('dialog:saveFile', data, undefined);
-            if (savedPath) {
+            if (!(window as any).ipcRenderer) return;
+
+            if (currentFilePath) {
+                // Overwrite existing file
+                const success = await (window as any).ipcRenderer.invoke('dialog:saveFile', data, currentFilePath);
+                if (success) {
+                    showSaveToast();
+                }
+            } else {
+                // No path known, do Save As
+                await handleSaveAs();
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const handleSaveAs = async () => {
+        const data = generateCue(cue);
+        const suggestedName = `${cue.performer} - ${cue.title}.cue`.replace(/[\\/:"*?<>|]/g, ''); // Clean filename
+        try {
+            if (!(window as any).ipcRenderer) return;
+            const savedPath = await (window as any).ipcRenderer.invoke('dialog:saveFile', data, suggestedName);
+            if (savedPath && typeof savedPath === 'string') {
+                setCurrentFilePath(savedPath);
                 showSaveToast();
             } else if (savedPath === true) {
+                // Should not really happen with name passed but for safety
                 showSaveToast();
             }
         } catch (e) {
@@ -203,7 +264,7 @@ export const CueEditor: React.FC = () => {
                 date={cue.date || ''}
                 genre={cue.genre || ''}
                 onUpdate={handleUpdateMetadata}
-                onImport={(src) => console.log('Import', src)}
+                onImport={handleImport}
                 onOpenFile={handleOpenFile}
             />
 
@@ -237,8 +298,13 @@ export const CueEditor: React.FC = () => {
                     <button onClick={handleAddRow} className="bg-brand-orange text-brand-darker font-medium rounded-full px-4 py-2 hover:shadow-[0_0_8px_var(--color-brand-orange)] transition text-sm">
                         add row
                     </button>
-                    <button onClick={handleSave} className="bg-brand-orange text-brand-darker font-medium rounded-full px-4 py-2 hover:shadow-[0_0_8px_var(--color-brand-orange)] transition text-sm">
-                        save
+                    {currentFilePath && (
+                        <button onClick={handleSave} className="bg-brand-orange text-brand-darker font-medium rounded-full px-4 py-2 hover:shadow-[0_0_8px_var(--color-brand-orange)] transition text-sm">
+                            save
+                        </button>
+                    )}
+                    <button onClick={handleSaveAs} className="bg-brand-orange text-brand-darker font-medium rounded-full px-4 py-2 hover:shadow-[0_0_8px_var(--color-brand-orange)] transition text-sm">
+                        save as
                     </button>
                 </div>
             </div>

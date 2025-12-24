@@ -1,8 +1,11 @@
 {
-  "name": "v1",
+  "name": "CUEsto",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
+  "author": "NiZDesign",
+  "license": "AGPL-3.0-only",
+  "description": "a complete and modern CUE sheet editor",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build && electron-builder",

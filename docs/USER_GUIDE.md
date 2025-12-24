@@ -17,6 +17,17 @@ CUEsto is a dedicated tool for creating and editing CUE sheets with ease. Whethe
 3. Select your `.cue` file.
 4. The editor will populate with the tracks and metadata from your file.
 
+### Importing from 1001tracklists
+CUEsto allows you to import tracklist data directly from a saved **1001tracklists.com** page.
+1. Visit a tracklist page on [1001tracklists.com](https://www.1001tracklists.com/).
+2. Save the page as an HTML file (`Right Click` -> `Save As...` -> `Webpage, HTML Only`).
+3. In CUEsto, click **"Import from 1001tracklists"**.
+4. Select the saved HTML file.
+5. The grid will automatically populate with:
+   - Track Titles and Artists (including mashups merged into single entries)
+   - Timings
+   - Mix Title and Artist
+
 ### Editing Tracks
 - **Title/Performer**: Click directly on the text fields to edit the track title or performer.
 - **Start Time**: Edit the start time of a track. The duration of the previous track will be automatically recalculated (conceptually), or the track will simply move in timeline.
