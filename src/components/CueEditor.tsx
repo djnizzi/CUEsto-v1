@@ -4,6 +4,8 @@ import { TrackRow } from './TrackRow';
 import { CueSheet, CueTrack, generateCue, parseCue } from '../lib/cueParser';
 import { timeToFrames } from '../lib/timeUtils';
 import { parse1001Tracklist } from '../lib/tracklistParser';
+import { GnuDbModal } from './GnuDbModal';
+import { fetchGnuDbMetadata } from '../lib/gnudb';
 
 // Dummy initial state or empty
 const INITIAL_CUE: CueSheet = {
@@ -22,6 +24,7 @@ export const CueEditor: React.FC = () => {
     const [cue, setCue] = useState<CueSheet>(INITIAL_CUE);
     const [showToast, setShowToast] = useState(false);
     const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
+    const [isGnuDbModalOpen, setIsGnuDbModalOpen] = useState(false);
 
     const showSaveToast = () => {
         setShowToast(true);
@@ -197,8 +200,30 @@ export const CueEditor: React.FC = () => {
             } catch (e) {
                 console.error('Import failed', e);
             }
+        } else if (source === 'gnudb') {
+            setIsGnuDbModalOpen(true);
         } else {
             console.log('Import source not implemented:', source);
+        }
+    };
+
+    const handleGnuDbImport = async (gnucdid: string) => {
+        try {
+            const result = await fetchGnuDbMetadata(gnucdid);
+            if (result) {
+                setCue(prev => ({
+                    ...prev,
+                    performer: result.artist,
+                    title: result.album,
+                    date: result.year || prev.date,
+                    genre: result.genre || prev.genre,
+                    tracks: result.tracks
+                }));
+            } else {
+                alert('No metadata found for this GnuDB ID.');
+            }
+        } catch (e) {
+            console.error('GnuDB Fetch fail', e);
         }
     };
 
@@ -315,6 +340,12 @@ export const CueEditor: React.FC = () => {
                     Saved successfully
                 </div>
             )}
+
+            <GnuDbModal
+                isOpen={isGnuDbModalOpen}
+                onClose={() => setIsGnuDbModalOpen(false)}
+                onImport={handleGnuDbImport}
+            />
         </div>
     );
 };

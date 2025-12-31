@@ -23,6 +23,7 @@ The application follows a standard Electron implementation with a main process (
 ### Utilities
 - **`cueParser.ts`**: Handles parsing of .cue files into state objects and generating string output for saving.
 - **`tracklistParser.ts`**: Implements 1001tracklists.com HTML parsing using the browser's native `DOMParser`. It extracts metadata, tracks, and handles mashup logic (merging sub-tracks).
+- **`gnudb.ts`**: Handles the communication with the GnuDB API via IPC. It processes the response data from the main process and extracts Artist, Album, Year, Genre, and Track Offsets.
 - **`timeUtils.ts`**: Helper functions for frame/time conversions (75 frames per second).
 
 ### State Management
@@ -56,11 +57,11 @@ The output will be in the `release` or `dist` folder depending on configuration.
 ```
 v1/
 ├── src/
-│   ├── components/    # React components
-│   ├── lib/           # Utility functions (cueParser, timeUtils)
+│   ├── components/    # React components (including GnuDbModal.tsx)
+│   ├── lib/           # Utility functions (cueParser, gnudb, timeUtils)
 │   ├── Main.tsx       # Entry point
 │   └── index.css      # Global styles & Tailwind directives
-├── electron/          # Main process code
+├── electron/          # Main process code (includes GnuDB fetching logic)
 ├── dist/              # Built assets
 └── package.json       # Dependencies and scripts
 ```

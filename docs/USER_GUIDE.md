@@ -21,12 +21,16 @@ CUEsto is a dedicated tool for creating and editing CUE sheets with ease. Whethe
 CUEsto allows you to import tracklist data directly from a saved **1001tracklists.com** page.
 1. Visit a tracklist page on [1001tracklists.com](https://www.1001tracklists.com/).
 2. Save the page as an HTML file (`Right Click` -> `Save As...` -> `Webpage, HTML Only`).
-3. In CUEsto, click **"Import from 1001tracklists"**.
+3. In CUEsto, click **"import from 1001tracklists"**.
 4. Select the saved HTML file.
-5. The grid will automatically populate with:
-   - Track Titles and Artists (including mashups merged into single entries)
-   - Timings
-   - Mix Title and Artist
+5. The grid will automatically populate with metadata and tracks.
+
+### Importing from GnuDB
+You can quickly retrieve high-quality metadata from the **GnuDB** database using a CD ID.
+1. In CUEsto, click **"import from gnudb"**.
+2. A modal window will appear. Enter the **GnuDB CD ID** (e.g., `860a8c86`).
+3. Click **"get metadata"**.
+4. CUEsto will fetch the Artist, Album Title, Year, Genre, and Track Timings directly into the editor.
 
 ### Editing Tracks
 - **Title/Performer**: Click directly on the text fields to edit the track title or performer.

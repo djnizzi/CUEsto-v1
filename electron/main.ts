@@ -57,6 +57,140 @@ ipcMain.handle('getAppVersion', () => {
   return app.getVersion();
 });
 
+ipcMain.handle('gnudb:fetchMetadata', async (_, gnucdid: string) => {
+  const name = 'cuesto';
+  const email = 'svinchu@kancho.com';
+  const hello = `${name}+${email}+test+1.0`;
+  const proto = '6';
+  const baseUrl = 'https://gnudb.gnudb.org/~cddb/cddb.cgi?cmd=cddb+read+data+';
+
+  const id = gnucdid.trim().split(/\s+/).pop() || gnucdid.trim();
+  const url = `${baseUrl}${id}&hello=${hello}&proto=${proto}`;
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.error('GnuDB fetch failed:', response.status);
+      return { error: `HTTP ${response.status}` };
+    }
+    const data = await response.text();
+
+    // Parse the data in the main process for better logging visibility
+    const result = parseGnuDbData(data);
+
+    return { data, result };
+  } catch (e: any) {
+    console.error('GnuDB fetch error:', e.message);
+    return { error: e.message };
+  }
+});
+
+function parseGnuDbData(data: string) {
+  if (!data.trim().startsWith('210')) {
+    console.warn('GnuDB response did not start with 210 status.');
+    return null;
+  }
+
+  const lines = data.split(/\r?\n/);
+  let artist = '';
+  let album = '';
+  let year = '';
+  let genre = '';
+  const trackTitles: string[] = [];
+  const trackOffsets: number[] = [];
+
+  const dtitlePattern = /^DTITLE=([^/]*)\s*\/\s*(.*)$/;
+  const ttitlePattern = /^TTITLE(\d+)=(.+)$/;
+  const dyearPattern = /^DYEAR=(.*)$/;
+  const dgenrePattern = /^DGENRE=(.*)$/;
+  const offsetPattern = /^#\s*(\d+)$/; // More robust: match # followed by 0 or more whitespace then digits
+
+  lines.forEach(line => {
+    const trimmed = line.trim();
+
+    const dmatch = trimmed.match(dtitlePattern);
+    if (dmatch) {
+      artist = dmatch[1].trim();
+      album = dmatch[2].trim();
+    }
+
+    const ymatch = trimmed.match(dyearPattern);
+    if (ymatch) {
+      year = ymatch[1].trim();
+    }
+
+    const gmatch = trimmed.match(dgenrePattern);
+    if (gmatch) {
+      genre = gmatch[1].trim();
+    }
+
+    const tmatch = trimmed.match(ttitlePattern);
+    if (tmatch) {
+      const idx = parseInt(tmatch[1], 10);
+      const title = tmatch[2].trim();
+      if (trackTitles[idx] !== undefined) {
+        trackTitles[idx] += title;
+      } else {
+        trackTitles[idx] = title;
+      }
+    }
+
+    const omatch = trimmed.match(offsetPattern);
+    if (omatch) {
+      trackOffsets.push(parseInt(omatch[1], 10));
+    }
+  });
+
+  if (trackOffsets.length === 0) {
+    console.error('No track offsets found in XMCD data');
+    return null;
+  }
+
+  console.log('\x1b[33m%s\x1b[0m', '--- GnuDB Timing Transformation (Terminal) ---');
+  console.log(`Original first offset: ${trackOffsets[0]}`);
+  trackOffsets[0] = 0; // Reset as per functions.py
+
+  const tracks = [];
+  for (let i = 0; i < trackTitles.length; i++) {
+    let tTitle = trackTitles[i];
+    let tArtist = artist;
+
+    if (tTitle.includes(' / ')) {
+      const parts = tTitle.split(' / ');
+      if (parts.length >= 2) {
+        tArtist = parts[0].trim();
+        tTitle = parts.slice(1).join(' / ').trim();
+      }
+    }
+
+    const offset = trackOffsets[i] || 0;
+    // We'll return the raw offset and let the renderer convert it, 
+    // but we'll log the conversion here too for the user to see.
+    const timeStr = framesToTimeMain(offset);
+    console.log(`Track ${i + 1}: Offset ${offset} -> ${timeStr}`);
+
+    tracks.push({
+      number: i + 1,
+      title: tTitle,
+      performer: tArtist,
+      index01: offset
+    });
+  }
+  console.log('\x1b[33m%s\x1b[0m', '----------------------------------------------');
+
+  return { artist, album, year, genre, tracks };
+}
+
+function framesToTimeMain(frames: number): string {
+  const FRAMES_PER_SECOND = 75;
+  const f = frames % FRAMES_PER_SECOND;
+  const remainingSeconds = Math.floor(frames / FRAMES_PER_SECOND);
+  const s = remainingSeconds % 60;
+  const m = Math.floor(remainingSeconds / 60);
+  const format = (n: number) => n.toString().padStart(2, '0');
+  return `${m}:${format(s)}:${format(f)}`;
+}
+
 // ... (keep rest)
 
 // The built directory structure
