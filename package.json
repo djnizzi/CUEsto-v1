@@ -1,7 +1,7 @@
 {
   "name": "CUEsto",
   "private": true,
-  "version": "1.0.2",
+  "version": "1.0.3",
   "type": "module",
   "author": "NiZDesign",
   "license": "AGPL-3.0-only",
@@ -13,6 +13,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "music-metadata": "^11.10.5",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

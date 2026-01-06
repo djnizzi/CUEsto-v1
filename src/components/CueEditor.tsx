@@ -5,7 +5,7 @@ import { CueSheet, CueTrack, generateCue, parseCue } from '../lib/cueParser';
 import { timeToFrames } from '../lib/timeUtils';
 import { parse1001Tracklist } from '../lib/tracklistParser';
 import { GnuDbModal } from './GnuDbModal';
-import { fetchGnuDbMetadata } from '../lib/gnudb';
+import { GnuDbResult } from '../lib/gnudb';
 
 // Dummy initial state or empty
 const INITIAL_CUE: CueSheet = {
@@ -25,6 +25,7 @@ export const CueEditor: React.FC = () => {
     const [showToast, setShowToast] = useState(false);
     const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
     const [isGnuDbModalOpen, setIsGnuDbModalOpen] = useState(false);
+    const [appVersion, setAppVersion] = useState('1.0.3');
 
     const showSaveToast = () => {
         setShowToast(true);
@@ -44,6 +45,7 @@ export const CueEditor: React.FC = () => {
             try {
                 if ((window as any).ipcRenderer) {
                     const version = await (window as any).ipcRenderer.invoke('getAppVersion');
+                    setAppVersion(version);
                     document.title = `CUEsto ${version}`;
                 }
             } catch (e) {
@@ -175,6 +177,27 @@ export const CueEditor: React.FC = () => {
         }
     };
 
+    const handleSelectAudioFile = async () => {
+        try {
+            if (!(window as any).ipcRenderer) return;
+            const result = await (window as any).ipcRenderer.invoke('dialog:openAudioFile');
+            if (result) {
+                const { filename, durationFrames, metadata } = result;
+                setCue(prev => ({
+                    ...prev,
+                    file: filename,
+                    totalDuration: durationFrames,
+                    performer: metadata?.artist || prev.performer,
+                    title: metadata?.title || prev.title,
+                    date: metadata?.year || prev.date,
+                    genre: metadata?.genre || prev.genre
+                }));
+            }
+        } catch (e) {
+            console.error('Failed to select audio file', e);
+        }
+    };
+
     const handleImport = async (source: string) => {
         if (source === '1001tracklists') {
             try {
@@ -207,28 +230,19 @@ export const CueEditor: React.FC = () => {
         }
     };
 
-    const handleGnuDbImport = async (gnucdid: string) => {
-        try {
-            const result = await fetchGnuDbMetadata(gnucdid);
-            if (result) {
-                setCue(prev => ({
-                    ...prev,
-                    performer: result.artist,
-                    title: result.album,
-                    date: result.year || prev.date,
-                    genre: result.genre || prev.genre,
-                    tracks: result.tracks
-                }));
-            } else {
-                alert('No metadata found for this GnuDB ID.');
-            }
-        } catch (e) {
-            console.error('GnuDB Fetch fail', e);
-        }
+    const handleGnuDbSuccess = (result: GnuDbResult) => {
+        setCue(prev => ({
+            ...prev,
+            performer: result.artist,
+            title: result.album,
+            date: result.year || prev.date,
+            genre: result.genre || prev.genre,
+            tracks: result.tracks
+        }));
     };
 
     const handleSave = async () => {
-        const data = generateCue(cue);
+        const data = generateCue(cue, appVersion);
         try {
             if (!(window as any).ipcRenderer) return;
 
@@ -248,8 +262,13 @@ export const CueEditor: React.FC = () => {
     };
 
     const handleSaveAs = async () => {
-        const data = generateCue(cue);
-        const suggestedName = `${cue.performer} - ${cue.title}.cue`.replace(/[\\/:"*?<>|]/g, ''); // Clean filename
+        const data = generateCue(cue, appVersion);
+        let baseName = `${cue.performer} - ${cue.title}`;
+        if (cue.file) {
+            const lastDot = cue.file.lastIndexOf('.');
+            baseName = lastDot > 0 ? cue.file.substring(0, lastDot) : cue.file;
+        }
+        const suggestedName = `${baseName}.cue`.replace(/[\\/:"*?<>|]/g, ''); // Clean filename
         try {
             if (!(window as any).ipcRenderer) return;
             const savedPath = await (window as any).ipcRenderer.invoke('dialog:saveFile', data, suggestedName);
@@ -270,7 +289,14 @@ export const CueEditor: React.FC = () => {
         if (index < cue.tracks.length - 1) {
             return cue.tracks[index + 1].index01 - cue.tracks[index].index01;
         }
+        if (cue.totalDuration) {
+            return Math.max(0, cue.totalDuration - cue.tracks[index].index01);
+        }
         return 0; // Last track unknown/infinity
+    };
+
+    const isDurationReadOnly = (index: number) => {
+        return index === cue.tracks.length - 1 && cue.totalDuration !== undefined && cue.totalDuration > 0;
     };
 
     return (
@@ -288,9 +314,11 @@ export const CueEditor: React.FC = () => {
                 performer={cue.performer}
                 date={cue.date || ''}
                 genre={cue.genre || ''}
+                totalDuration={cue.totalDuration}
                 onUpdate={handleUpdateMetadata}
                 onImport={handleImport}
                 onOpenFile={handleOpenFile}
+                onSelectAudioFile={handleSelectAudioFile}
             />
 
             <div className="max-w-5xl mx-auto px-6 mt-1 pb-10">
@@ -311,6 +339,7 @@ export const CueEditor: React.FC = () => {
                             index={i}
                             track={track}
                             durationFrames={getRenderDuration(i)}
+                            isDurationReadOnly={isDurationReadOnly(i)}
                             onUpdate={handleTrackUpdate}
                             onDurationChange={handleDurationChange}
                             onStartTimeChange={handleStartTimeChange}
@@ -344,7 +373,7 @@ export const CueEditor: React.FC = () => {
             <GnuDbModal
                 isOpen={isGnuDbModalOpen}
                 onClose={() => setIsGnuDbModalOpen(false)}
-                onImport={handleGnuDbImport}
+                onSuccess={handleGnuDbSuccess}
             />
         </div>
     );

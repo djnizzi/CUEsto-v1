@@ -7,15 +7,25 @@ CUEsto is a dedicated tool for creating and editing CUE sheets with ease. Whethe
 - **Visual Editor**: See your tracks in a clear, table-like layout.
 - **Smart Time Editing**: Automatically recalculates durations when you edit start times.
 - **Metadata Management**: Easily update Album Title, Performer, File references, and more.
+- **Audio Integration**: Automatically extract duration and metadata tags (title, artist, year, genre) from your audio files.
 - **Dark Mode**: A sleek, dark interface designed for focus.
 
 ## Getting Started
 
 ### Opening a CUE Sheet
 1. Launch CUEsto.
-2. Click the **"Open File"** button in the header (folder icon) or use the "Open" button if available in the metadata section.
-3. Select your `.cue` file.
-4. The editor will populate with the tracks and metadata from your file.
+2. Click the **"Open File"** button in the header to select an existing `.cue` file.
+3. The editor will populate with the tracks and metadata from your file.
+
+### Linking an Audio File
+Linking an audio file to your CUE sheet allows CUEsto to provide more accurate information.
+1. Click the **Disc Icon** next to the "file name" field in the header.
+2. Select your audio file (MP3, WAV, FLAC, etc.).
+3. CUEsto will:
+   - Extract and populate the **Title**, **Performer**, **Date**, and **Genre** from the file's metadata tags.
+   - Display the precise **Total Duration** of the audio file.
+   - Automatically calculate the duration of the **Final Track**.
+   - Suggest the audio filename as the default when saving.
 
 ### Importing from 1001tracklists
 CUEsto allows you to import tracklist data directly from a saved **1001tracklists.com** page.
@@ -34,8 +44,9 @@ You can quickly retrieve high-quality metadata from the **GnuDB** database using
 
 ### Editing Tracks
 - **Title/Performer**: Click directly on the text fields to edit the track title or performer.
-- **Start Time**: Edit the start time of a track. The duration of the previous track will be automatically recalculated (conceptually), or the track will simply move in timeline.
-- **Duration**: You can also edit the duration of a specific track. Note that changing a track's duration will shift the start times of all subsequent tracks to maintain continuity.
+- **Start Time**: Edit the start time of a track. The duration of the previous track will be automatically recalculated.
+- **Duration**: You can edit the duration of a track. Changing a track's duration will shift the start times of all subsequent tracks to maintain continuity.
+- **Final Track Duration**: If an audio file is linked, the duration of the final track is calculated automatically and displayed in a read-only field.
 - **Add/Remove**: Use the **"Add Row"** button at the bottom to add a new track. Click the trash icon next to a track to remove it.
 
 ### Saving

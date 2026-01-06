@@ -8,27 +8,23 @@ export interface GnuDbResult {
     tracks: CueTrack[];
 }
 
-export async function fetchGnuDbMetadata(gnucdid: string): Promise<GnuDbResult | null> {
+export async function fetchGnuDbMetadata(gnucdid: string): Promise<{ result?: GnuDbResult; error?: string } | null> {
     try {
         if ((window as any).ipcRenderer) {
             const response = await (window as any).ipcRenderer.invoke('gnudb:fetchMetadata', gnucdid);
 
             if (response.error) {
-                console.error('GnuDB IPC Error:', response.error);
-                return null;
+                return { error: response.error };
             }
 
             if (response.result) {
-                // Return the already parsed result from the main process
-                return response.result;
+                return { result: response.result };
             }
         } else {
-            console.error('IPC Renderer not available');
-            return null;
+            return { error: 'IPC Renderer not available' };
         }
-    } catch (e) {
-        console.error('Failed to fetch GnuDB metadata via IPC:', e);
-        return null;
+    } catch (e: any) {
+        return { error: `Failed to fetch: ${e.message}` };
     }
     return null;
 }

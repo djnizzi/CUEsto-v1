@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import fs from 'node:fs/promises'
+import * as mm from 'music-metadata'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // ... (keep constants)
@@ -30,6 +31,43 @@ ipcMain.handle('dialog:openHtml', async () => {
   } else {
     const content = await fs.readFile(filePaths[0], 'utf-8')
     return { content, filepath: filePaths[0] }
+  }
+})
+
+ipcMain.handle('dialog:openAudioFile', async () => {
+  const { canceled, filePaths } = await dialog.showOpenDialog({
+    properties: ['openFile'],
+    filters: [{ name: 'Audio Files', extensions: ['mp3', 'wav', 'flac', 'm4a', 'ogg', 'opus'] }]
+  })
+  if (canceled) {
+    return null
+  } else {
+    const filePath = filePaths[0]
+    try {
+      const metadata = await mm.parseFile(filePath)
+      const durationSeconds = metadata.format.duration || 0
+      // Convert to frames (75 fps)
+      const totalFrames = Math.floor(durationSeconds * 75)
+      return {
+        filename: path.basename(filePath),
+        filepath: filePath,
+        durationFrames: totalFrames,
+        metadata: {
+          title: metadata.common.title || '',
+          artist: metadata.common.albumartist || metadata.common.artist || '',
+          year: metadata.common.year?.toString() || '',
+          genre: metadata.common.genre?.[0] || ''
+        }
+      }
+    } catch (error) {
+      console.error('Error parsing audio metadata:', error)
+      return {
+        filename: path.basename(filePath),
+        filepath: filePath,
+        durationFrames: 0,
+        error: 'Could not extract duration'
+      }
+    }
   }
 })
 
@@ -67,22 +105,52 @@ ipcMain.handle('gnudb:fetchMetadata', async (_, gnucdid: string) => {
   const id = gnucdid.trim().split(/\s+/).pop() || gnucdid.trim();
   const url = `${baseUrl}${id}&hello=${hello}&proto=${proto}`;
 
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      console.error('GnuDB fetch failed:', response.status);
-      return { error: `HTTP ${response.status}` };
+  const maxRetries = 2;
+  const retryDelay = 2000;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      if (attempt > 0) {
+        console.log(`GnuDB Retry attempt ${attempt}...`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+      }
+
+      const response = await fetch(url);
+
+      if (response.ok) {
+        const data = await response.text();
+        const result = parseGnuDbData(data);
+        if (result) {
+          return { data, result };
+        } else {
+          return { error: 'Invalid XMCD format returned from GnuDB.' };
+        }
+      }
+
+      if (response.status === 403) {
+        return { error: 'GnuDB requires registration or a unique email address (403).' };
+      }
+
+      if (response.status === 404) {
+        return { error: 'CD ID not found in GnuDB (404).' };
+      }
+
+      if (response.status >= 500 && attempt < maxRetries) {
+        console.warn(`Attempt ${attempt + 1} failed with server error ${response.status}. Retrying...`);
+        continue;
+      }
+
+      return { error: `GnuDB returned an error: ${response.status}` };
+
+    } catch (e: any) {
+      console.error(`Fetch attempt ${attempt + 1} error:`, e.message);
+      if (attempt === maxRetries) {
+        return { error: `Connection error: ${e.message}` };
+      }
     }
-    const data = await response.text();
-
-    // Parse the data in the main process for better logging visibility
-    const result = parseGnuDbData(data);
-
-    return { data, result };
-  } catch (e: any) {
-    console.error('GnuDB fetch error:', e.message);
-    return { error: e.message };
   }
+
+  return { error: 'Failed to retrieve metadata after multiple attempts.' };
 });
 
 function parseGnuDbData(data: string) {

@@ -11,20 +11,24 @@ CUEsto is a modern, Electron-based desktop application for editing CUE sheets. I
 - **Styling**: [TailwindCSS](https://tailwindcss.com/)
 - **Linting**: ESLint
 
-## Architecture
-The application follows a standard Electron implementation with a main process (handling OS-level interactions like file dialogs) and a renderer process (the React UI).
+### IPC Handlers
+- **`dialog:openFile`**: Opens CUE/TXT files.
+- **`dialog:openAudioFile`**: Uses `music-metadata` to return filename, duration in frames, and common tags (Artist, Title, Year, Genre).
+- **`dialog:saveFile`**: Handles saving the generated CUE content to disk.
+- **`getAppVersion`**: Returns the current application version from `package.json`.
 
 ### Key Components
 - **`CueEditor.tsx`**: The main container component that manages the state of the CUE sheet (`CueSheet` object). It handles file operations (open/save), track updates, and renders the UI.
 - **`TrackRow.tsx`**: Represents a single track in the cue sheet. Contains inputs for title, performer, start time, and duration.
-- **`MetadataHeader.tsx`**: Displays and edits global CUE properties like File, Title, Performer, Date, and Genre.
-- **`TimeInput.tsx`**: A specialized input component for handling timestamp formats (MM:SS:FF or HH:MM:SS) securely.
+- **`MetadataHeader.tsx`**: Displays and edits global CUE properties. Includes the audio file selector (disc icon) and total duration display.
+- **`TimeInput.tsx`**: A specialized input component for handling timestamp formats (MM:SS:FF). Supports a read-only mode for calculated fields.
 
 ### Utilities
 - **`cueParser.ts`**: Handles parsing of .cue files into state objects and generating string output for saving.
 - **`tracklistParser.ts`**: Implements 1001tracklists.com HTML parsing using the browser's native `DOMParser`. It extracts metadata, tracks, and handles mashup logic (merging sub-tracks).
-- **`gnudb.ts`**: Handles the communication with the GnuDB API via IPC. It processes the response data from the main process and extracts Artist, Album, Year, Genre, and Track Offsets.
+- **`gnudb.ts`**: Handles context-specific CD lookup via IPC.
 - **`timeUtils.ts`**: Helper functions for frame/time conversions (75 frames per second).
+- **Audio Metadata**: Uses `music-metadata` in the main process (via `dialog:openAudioFile` IPC) to extract duration and tags (Artist, Title, Year, Genre).
 
 ### State Management
 State is largely local to `CueEditor.tsx`, with the `CueSheet` object serving as the single source of truth for the currently open file. Changes flow down to child components via props, and updates bubble up via callbacks.

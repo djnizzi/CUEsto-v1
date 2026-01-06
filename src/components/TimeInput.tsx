@@ -7,9 +7,10 @@ interface TimeInputProps {
     onBlur?: () => void;
     className?: string;
     placeholder?: string;
+    readOnly?: boolean;
 }
 
-export const TimeInput: React.FC<TimeInputProps> = ({ value, onChange, onBlur, className, placeholder }) => {
+export const TimeInput: React.FC<TimeInputProps> = ({ value, onChange, onBlur, className, placeholder, readOnly }) => {
     const [localValue, setLocalValue] = useState(value);
 
     useEffect(() => {
@@ -59,6 +60,7 @@ export const TimeInput: React.FC<TimeInputProps> = ({ value, onChange, onBlur, c
             onKeyDown={handleKeyDown}
             className={`bg-transparent text-brand-text outline-none text-center font-light ${className}`}
             placeholder={placeholder || "MM:SS:FF"}
+            readOnly={readOnly}
         />
     );
 };
