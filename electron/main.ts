@@ -387,6 +387,34 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 
 
 let win: BrowserWindow | null
 
+const gotLock = app.requestSingleInstanceLock()
+
+if (!gotLock) {
+  app.quit()
+} else {
+  app.on('second-instance', (_, argv) => {
+    if (win) {
+      if (win.isMinimized()) win.restore()
+      win.focus()
+
+      // Handle file opened while app is running
+      const filePath = argv.find(arg => arg.endsWith('.cue') || arg.endsWith('.txt'))
+      if (filePath) {
+        handleFileOpen(filePath)
+      }
+    }
+  })
+}
+
+async function handleFileOpen(filePath: string) {
+  try {
+    const content = await fs.readFile(filePath, 'utf-8')
+    win?.webContents.send('file-opened', { content, filePath })
+  } catch (e) {
+    console.error('Failed to read file', e)
+  }
+}
+
 function createWindow() {
   win = new BrowserWindow({
     width: 900,
@@ -399,70 +427,32 @@ function createWindow() {
   })
   win.setMenu(null); // Explicitly remove it
 
-  win.webContents.setWindowOpenHandler(({ url }) => {
+  win.webContents.setWindowOpenHandler(({ url }: { url: string }) => {
     createSearchWindow(url);
     return { action: 'deny' };
   });
 
-  // Handle startup file (Windows File Association)
-  // Usually process.argv[1] is the file path if opened via association.
-  // In dev, 0 is electron, 1 is ., 2 might be file. In prod, 0 is exe, 1 is file.
-  // We need to be careful.
-
-  const getStartupFile = async () => {
-    let filePath = '';
-
-    if (app.isPackaged) {
-      if (process.argv.length >= 2) {
-        filePath = process.argv[1];
-      }
-    } else {
-      // Dev mode: 'electron . filepath'
-      if (process.argv.length >= 3) {
-        filePath = process.argv[2];
-      }
-    }
-
-    if (filePath && (filePath.endsWith('.cue') || filePath.endsWith('.txt'))) {
-      try {
-        const content = await fs.readFile(filePath, 'utf-8');
-        // Wait for React to be ready? 
-        // We can send it when did-finish-load fires.
-        return { content, filePath };
-      } catch (e) {
-        console.error('Failed to read startup file', e);
-      }
-    }
-    return null;
-  };
-
   win.webContents.on('did-finish-load', async () => {
     win?.webContents.send('main-process-message', (new Date).toLocaleString());
 
-    // Check and send file
-    const startupData = await getStartupFile();
-    if (startupData) {
-      win?.webContents.send('file-opened', startupData);
+    // Check for startup file (Windows File Association)
+    const filePath = process.argv.find(arg => arg.endsWith('.cue') || arg.endsWith('.txt'))
+    if (filePath) {
+      handleFileOpen(filePath)
     }
   })
 
   if (VITE_DEV_SERVER_URL) {
     console.log('Loading DEV server:', VITE_DEV_SERVER_URL)
     win.loadURL(VITE_DEV_SERVER_URL)
-    // win.webContents.openDevTools() // Disabled now that UI issue is resolved
-
-    win.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+    win.webContents.on('did-fail-load', (_event: any, errorCode: number, errorDescription: string, validatedURL: string) => {
       console.error(`Load failed: ${errorCode} ${errorDescription} at ${validatedURL}`);
     });
   } else {
-    // win.loadFile('dist/index.html')
     win.loadFile(path.join(RENDERER_DIST, 'index.html'))
   }
 }
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
@@ -471,8 +461,6 @@ app.on('window-all-closed', () => {
 })
 
 app.on('activate', () => {
-  // On OS X it's common to re-create a window in the app when the
-  // dock icon is clicked and there are no other windows open.
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow()
   }

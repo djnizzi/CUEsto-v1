@@ -1,7 +1,7 @@
 // @see - https://www.electron.build/configuration/configuration
 {
   "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
-  "appId": "com.djnizzi.cuesto",
+  "appId": "com.cuesto.app",
   "asar": true,
   "productName": "CUEsto",
   "directories": {
@@ -26,15 +26,28 @@
         ]
       }
     ],
-    "icon": "public/cuesto.ico",
-
+    "icon": "build/icon.ico",
     "artifactName": "${productName}-Windows-${version}-Setup.${ext}"
   },
+  "fileAssociations": [
+    {
+      "ext": "cue",
+      "name": "CUE Sheet",
+      "description": "CUE audio sheet",
+      "icon": "build/icon.ico"
+    }
+  ],
   "nsis": {
     "oneClick": false,
     "perMachine": false,
     "allowToChangeInstallationDirectory": true,
-    "deleteAppDataOnUninstall": false
+    "deleteAppDataOnUninstall": false,
+    "installerIcon": "installer.ico",
+    "installerHeader": "installerHeader.bmp",
+    "installerSidebar": "installerSidebar.bmp",
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "runAfterFinish": true
   },
   "linux": {
     "target": [
