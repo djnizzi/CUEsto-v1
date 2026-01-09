@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, WebContentsView, Menu, MenuItem, clipboard } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import fs from 'node:fs/promises'
@@ -153,6 +153,112 @@ ipcMain.handle('gnudb:fetchMetadata', async (_, gnucdid: string) => {
   return { error: 'Failed to retrieve metadata after multiple attempts.' };
 });
 
+function getBrowserStatus(view: WebContentsView) {
+  return {
+    canGoBack: view.webContents.canGoBack(),
+    canGoForward: view.webContents.canGoForward(),
+    title: view.webContents.getTitle(),
+    url: view.webContents.getURL()
+  };
+}
+
+ipcMain.handle('browser:get-status', (event) => {
+  // Find the view associated with the window that sent this
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (!win) return null;
+  const view = (win as any).browserView; // We'll store it here
+  if (!view) return null;
+  return getBrowserStatus(view);
+});
+
+ipcMain.on('browser:go-back', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const view = win ? (win as any).browserView : null;
+  if (view && view.webContents.canGoBack()) {
+    view.webContents.goBack();
+  }
+});
+
+ipcMain.on('browser:go-forward', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const view = win ? (win as any).browserView : null;
+  if (view && view.webContents.canGoForward()) {
+    view.webContents.goForward();
+  }
+});
+
+function createSearchWindow(url: string) {
+  const searchWin = new BrowserWindow({
+    width: 1024,
+    height: 800,
+    icon: path.join(process.env.VITE_PUBLIC, 'cuesto.ico'),
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.mjs'),
+    },
+    autoHideMenuBar: true,
+  });
+  searchWin.setMenu(null);
+
+  const view = new WebContentsView();
+  (searchWin as any).browserView = view;
+  searchWin.contentView.addChildView(view);
+
+  const HEADER_HEIGHT = 60; // Matching BrowserShell.tsx header
+
+  const updateViewBounds = () => {
+    const [width, height] = searchWin.getContentSize();
+    view.setBounds({ x: 0, y: HEADER_HEIGHT, width, height: height - HEADER_HEIGHT });
+  };
+
+  searchWin.on('resize', updateViewBounds);
+  updateViewBounds();
+
+  // Load the React app in browser mode
+  if (VITE_DEV_SERVER_URL) {
+    searchWin.loadURL(`${VITE_DEV_SERVER_URL}?mode=browser`);
+  } else {
+    searchWin.loadFile(path.join(RENDERER_DIST, 'index.html'), { query: { mode: 'browser' } });
+  }
+
+  view.webContents.loadURL(url);
+
+  // Sync status back to React
+  const syncStatus = () => {
+    if (searchWin.isDestroyed()) return;
+    searchWin.webContents.send('browser:status-updated', getBrowserStatus(view));
+  };
+
+  view.webContents.on('did-navigate', syncStatus);
+  view.webContents.on('did-navigate-in-page', syncStatus);
+  view.webContents.on('page-title-updated', syncStatus);
+
+  view.webContents.on('context-menu', (_, params) => {
+    if (params.linkURL) {
+      const menu = new Menu();
+      menu.append(new MenuItem({
+        label: 'Copy Link',
+        click: () => {
+          clipboard.writeText(params.linkURL);
+        }
+      }));
+      menu.append(new MenuItem({
+        label: 'Open in New Window',
+        click: () => {
+          createSearchWindow(params.linkURL);
+        }
+      }));
+      menu.popup();
+    }
+  });
+
+  view.webContents.setWindowOpenHandler(({ url }) => {
+    createSearchWindow(url);
+    return { action: 'deny' };
+  });
+
+  return searchWin;
+}
+
 function parseGnuDbData(data: string) {
   if (!data.trim().startsWith('210')) {
     console.warn('GnuDB response did not start with 210 status.');
@@ -292,6 +398,11 @@ function createWindow() {
     autoHideMenuBar: true, // Hide the default menu
   })
   win.setMenu(null); // Explicitly remove it
+
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    createSearchWindow(url);
+    return { action: 'deny' };
+  });
 
   // Handle startup file (Windows File Association)
   // Usually process.argv[1] is the file path if opened via association.

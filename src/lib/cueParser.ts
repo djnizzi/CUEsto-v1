@@ -15,6 +15,7 @@ export interface CueSheet {
     date?: string;
     genre?: string;
     totalDuration?: number; // Total duration in frames
+    gnucdid?: string;
     tracks: CueTrack[];
 }
 
@@ -49,6 +50,14 @@ export function parseCue(content: string): CueSheet {
         } else if (trimmed.startsWith('REM GENRE')) {
             const val = removeQuotes(trimmed.substring(9).trim());
             cue.genre = val;
+        } else if (trimmed.startsWith('REM TOTAL DURATION')) {
+            const match = trimmed.match(/^REM TOTAL DURATION\s+(\d+:\d{2}:\d{2})$/);
+            if (match) {
+                cue.totalDuration = timeToFrames(match[1]);
+            }
+        } else if (trimmed.startsWith('REM GNUCDID')) {
+            const val = removeQuotes(trimmed.substring(12).trim());
+            cue.gnucdid = val;
         } else if (trimmed.startsWith('FILE')) {
             // FILE "filename" WAVE
             const match = trimmed.match(/^FILE\s+"(.*)"\s+\w+$/);
@@ -98,6 +107,7 @@ export function generateCue(cue: CueSheet, version: string = '1.0.3'): string {
     if (cue.title) output += `TITLE "${cue.title}"\n`;
     if (cue.date) output += `REM DATE "${cue.date}"\n`;
     if (cue.genre) output += `REM GENRE "${cue.genre}"\n`;
+    if (cue.gnucdid) output += `REM GNUCDID "${cue.gnucdid}"\n`;
 
     if (cue.totalDuration) {
         output += `REM TOTAL DURATION ${framesToTime(cue.totalDuration)}\n`;

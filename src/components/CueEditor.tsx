@@ -5,7 +5,7 @@ import { CueSheet, CueTrack, generateCue, parseCue } from '../lib/cueParser';
 import { timeToFrames } from '../lib/timeUtils';
 import { parse1001Tracklist } from '../lib/tracklistParser';
 import { GnuDbModal } from './GnuDbModal';
-import { GnuDbResult } from '../lib/gnudb';
+import { GnuDbResult, OverwriteOptions } from '../lib/gnudb';
 
 // Dummy initial state or empty
 const INITIAL_CUE: CueSheet = {
@@ -230,15 +230,35 @@ export const CueEditor: React.FC = () => {
         }
     };
 
-    const handleGnuDbSuccess = (result: GnuDbResult) => {
-        setCue(prev => ({
-            ...prev,
-            performer: result.artist,
-            title: result.album,
-            date: result.year || prev.date,
-            genre: result.genre || prev.genre,
-            tracks: result.tracks
-        }));
+    const handleGnuDbSuccess = (result: GnuDbResult, options: OverwriteOptions) => {
+        setCue(prev => {
+            const newCue = { ...prev };
+
+            // Store the source CD ID
+            newCue.gnucdid = result.id;
+
+            // Header: Update if option checked OR if current value is missing/empty
+            if (options.header || !prev.performer) newCue.performer = result.artist;
+            if (options.header || !prev.title) newCue.title = result.album;
+            if (options.header || !prev.date) newCue.date = result.year || prev.date;
+            if (options.header || !prev.genre) newCue.genre = result.genre || prev.genre;
+
+            // Tracks: We use the GnuDB tracklist if any track change is requested OR if current tracklist is empty
+            if (options.trackTitles || options.trackPerformers || options.timings || prev.tracks.length === 0) {
+                newCue.tracks = result.tracks.map((gTrack, i) => {
+                    const prevTrack = prev.tracks[i];
+                    return {
+                        number: gTrack.number,
+                        // Update if option checked OR if current value is missing/empty
+                        title: (options.trackTitles || !prevTrack?.title) ? gTrack.title : (prevTrack?.title || gTrack.title),
+                        performer: (options.trackPerformers || !prevTrack?.performer) ? gTrack.performer : (prevTrack?.performer || gTrack.performer),
+                        index01: (options.timings || prevTrack?.index01 === undefined) ? gTrack.index01 : (prevTrack?.index01 || gTrack.index01)
+                    };
+                });
+            }
+
+            return newCue;
+        });
     };
 
     const handleSave = async () => {
@@ -340,6 +360,7 @@ export const CueEditor: React.FC = () => {
                             track={track}
                             durationFrames={getRenderDuration(i)}
                             isDurationReadOnly={isDurationReadOnly(i)}
+                            showDuration={!(i === cue.tracks.length - 1 && (!cue.totalDuration || cue.totalDuration <= 0))}
                             onUpdate={handleTrackUpdate}
                             onDurationChange={handleDurationChange}
                             onStartTimeChange={handleStartTimeChange}

@@ -12,6 +12,7 @@ interface TrackRowProps {
     onStartTimeChange: (index: number, newStartTimeStr: string) => void;
     onDelete: (index: number) => void;
     isDurationReadOnly?: boolean;
+    showDuration?: boolean;
 }
 
 export const TrackRow: React.FC<TrackRowProps> = ({
@@ -22,7 +23,8 @@ export const TrackRow: React.FC<TrackRowProps> = ({
     onDurationChange,
     onStartTimeChange,
     onDelete,
-    isDurationReadOnly
+    isDurationReadOnly,
+    showDuration = true
 }) => {
     return (
         <div className="flex items-center gap-2 py-1 text-brand-text">
@@ -66,14 +68,18 @@ export const TrackRow: React.FC<TrackRowProps> = ({
 
             {/* Duration */}
             <div className="w-24">
-                <div className={`${isDurationReadOnly ? 'border-none' : 'border border-white/20 rounded-full'} px-3 py-1 flex items-center justify-center bg-transparent ${isDurationReadOnly ? '' : 'focus-within:border-brand-orange'}`}>
-                    <TimeInput
-                        value={framesToTime(durationFrames)}
-                        onChange={(val) => !isDurationReadOnly && onDurationChange(index, val)}
-                        className={`bg-transparent w-full text-center text-sm text-brand-text ${isDurationReadOnly ? 'cursor-default' : ''}`}
-                        readOnly={isDurationReadOnly}
-                    />
-                </div>
+                {showDuration ? (
+                    <div className={`${isDurationReadOnly ? 'border-none' : 'border border-white/20 rounded-full'} px-3 py-1 flex items-center justify-center bg-transparent ${isDurationReadOnly ? '' : 'focus-within:border-brand-orange'}`}>
+                        <TimeInput
+                            value={framesToTime(durationFrames)}
+                            onChange={(val) => !isDurationReadOnly && onDurationChange(index, val)}
+                            className={`bg-transparent w-full text-center text-sm text-brand-text ${isDurationReadOnly ? 'cursor-default' : ''}`}
+                            readOnly={isDurationReadOnly}
+                        />
+                    </div>
+                ) : (
+                    <div className="h-[30px]" /> /* Spacer to maintain alignment */
+                )}
             </div>
 
             {/* Delete */}

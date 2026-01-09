@@ -8,6 +8,8 @@ CUEsto is a dedicated tool for creating and editing CUE sheets with ease. Whethe
 - **Smart Time Editing**: Automatically recalculates durations when you edit start times.
 - **Metadata Management**: Easily update Album Title, Performer, File references, and more.
 - **Audio Integration**: Automatically extract duration and metadata tags (title, artist, year, genre) from your audio files.
+- **Metadata Persistence**: Support for custom `REM` lines, including `TOTAL DURATION` and `GNUCDID` for tracking source metadata across sessions.
+- **Improved Browser**: Customized internal search browser for GnuDB with navigation controls (Back/Forward) and right-click support.
 - **Dark Mode**: A sleek, dark interface designed for focus.
 
 ## Getting Started
@@ -38,15 +40,28 @@ CUEsto allows you to import tracklist data directly from a saved **1001tracklist
 ### Importing from GnuDB
 You can quickly retrieve high-quality metadata from the **GnuDB** database using a CD ID.
 1. In CUEsto, click **"import from gnudb"**.
-2. A modal window will appear. Enter the **GnuDB CD ID** (e.g., `860a8c86`).
-3. Click **"get metadata"**.
-4. CUEsto will fetch the Artist, Album Title, Year, Genre, and Track Timings directly into the editor.
+2. A modal window will appear.
+3. **Redirection Information**: The modal includes a link to GnuDB's search page to help you find the correct CD ID. Clicking this link opens a **Custom Internal Browser** with:
+   - **Navigation Controls**: Use the Back and Forward buttons to browse GnuDB just like a standard browser.
+   - **Right-Click Actions**: Right-click any link to quickly **Copy Link** or **Open in New Window**.
+4. **Selective Overwrite**: Before fetching, you can use the checkboxes to choose exactly which fields to update:
+   - **Header**: Artist, Album Title, Year, Genre.
+   - **Track Titles**: Updates titles for all tracks.
+   - **Track Performers**: Updates performers for all tracks.
+   - **Start Times/Durations**: Updates indices/timings.
+5. **Auto-Fallback**: If a field in your CUE sheet is currently empty, GnuDB will always populate it regardless of your checkbox selections. Your choices only determine whether to *overwrite* existing non-empty values.
+6. Enter the **GnuDB CD ID** (e.g., `860a8c86`) and click **"get metadata"**.
+7. CUEsto will fetch the requested metadata directly into the editor.
+8. **Persistence**: When you import from GnuDB, CUEsto automatically saves the CD ID as a `REM GNUCDID` line in your CUE file. This allows the application to remember where the metadata came from if you reopen the file later.
 
 ### Editing Tracks
 - **Title/Performer**: Click directly on the text fields to edit the track title or performer.
 - **Start Time**: Edit the start time of a track. The duration of the previous track will be automatically recalculated.
 - **Duration**: You can edit the duration of a track. Changing a track's duration will shift the start times of all subsequent tracks to maintain continuity.
-- **Final Track Duration**: If an audio file is linked, the duration of the final track is calculated automatically and displayed in a read-only field.
+- **Final Track Duration**: 
+  - If an audio file is linked, the duration of the final track is calculated automatically.
+  - If a `REM TOTAL DURATION` line is present in the CUE file, CUEsto will use it to display the total length and final track duration even without the audio file.
+  - **Smart Visibility**: If neither an audio file nor a duration tag is available, the duration field for the final track is hidden to prevent confusion.
 - **Add/Remove**: Use the **"Add Row"** button at the bottom to add a new track. Click the trash icon next to a track to remove it.
 
 ### Saving
