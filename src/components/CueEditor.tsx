@@ -6,6 +6,8 @@ import { timeToFrames } from '../lib/timeUtils';
 import { parse1001Tracklist } from '../lib/tracklistParser';
 import { GnuDbModal } from './GnuDbModal';
 import { GnuDbResult, OverwriteOptions } from '../lib/gnudb';
+import { DiscogsModal } from './DiscogsModal';
+import { DiscogsOptions, DiscogsResult, interpolateDurations, discogsTracksToCueTracks } from '../lib/discogs';
 
 // Dummy initial state or empty
 const INITIAL_CUE: CueSheet = {
@@ -25,6 +27,7 @@ export const CueEditor: React.FC = () => {
     const [showToast, setShowToast] = useState(false);
     const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
     const [isGnuDbModalOpen, setIsGnuDbModalOpen] = useState(false);
+    const [isDiscogsModalOpen, setIsDiscogsModalOpen] = useState(false);
     const [appVersion, setAppVersion] = useState('1.0.3');
 
     const showSaveToast = () => {
@@ -225,6 +228,8 @@ export const CueEditor: React.FC = () => {
             }
         } else if (source === 'gnudb') {
             setIsGnuDbModalOpen(true);
+        } else if (source === 'discogs') {
+            setIsDiscogsModalOpen(true);
         } else {
             console.log('Import source not implemented:', source);
         }
@@ -253,6 +258,62 @@ export const CueEditor: React.FC = () => {
                         title: (options.trackTitles || !prevTrack?.title) ? gTrack.title : (prevTrack?.title || gTrack.title),
                         performer: (options.trackPerformers || !prevTrack?.performer) ? gTrack.performer : (prevTrack?.performer || gTrack.performer),
                         index01: (options.timings || prevTrack?.index01 === undefined) ? gTrack.index01 : (prevTrack?.index01 || gTrack.index01)
+                    };
+                });
+            }
+
+            return newCue;
+        });
+    };
+
+    const handleDiscogsSuccess = (result: DiscogsResult, options: DiscogsOptions) => {
+        setCue(prev => {
+            const newCue = { ...prev };
+
+            // Header: Update if option checked OR if current value is missing/empty
+            if (options.header || !prev.performer) newCue.performer = result.artist;
+            if (options.header || !prev.title) newCue.title = result.album;
+            if (options.header || !prev.date) newCue.date = result.year || prev.date;
+            if (options.header || !prev.genre) newCue.genre = result.genre || prev.genre;
+
+            // Store Discogs release code
+            if (result.releaseCode) {
+                newCue.discogs = result.releaseCode;
+            }
+
+            // Filter tracks by Disc # if provided
+            let discTracks = result.tracks;
+            if (options.discNumber) {
+                const prefix = `${options.discNumber}-`;
+                discTracks = result.tracks.filter(t => t.position.startsWith(prefix));
+                // If discTracks is empty, it might mean the position format is different or only one disc
+                if (discTracks.length === 0) discTracks = result.tracks;
+            }
+
+            // Tracks: Update if any track change is requested OR if current tracklist is empty/initial
+            const isInitial = prev.tracks.length === 1 && !prev.tracks[0].title && !prev.tracks[0].performer && prev.tracks[0].index01 === 0;
+            if (options.trackTitles || options.trackPerformers || options.timings || options.interpolate || isInitial) {
+                let newTracks: CueTrack[] = [];
+
+                if (options.interpolate && prev.totalDuration) {
+                    newTracks = interpolateDurations(discTracks, prev.totalDuration);
+                } else {
+                    newTracks = discogsTracksToCueTracks(discTracks);
+                }
+
+                newCue.tracks = newTracks.map((nt, i) => {
+                    const prevTrack = prev.tracks[i];
+
+                    // Determine final values index-by-index
+                    const finalTitle = (options.trackTitles || !prevTrack?.title) ? (nt.title || 'Untitled') : prevTrack.title;
+                    const finalPerformer = (options.trackPerformers || !prevTrack?.performer) ? (nt.performer || '') : prevTrack.performer;
+                    const finalIndex = (options.timings || options.interpolate || prevTrack?.index01 === undefined) ? nt.index01 : prevTrack.index01;
+
+                    return {
+                        number: nt.number,
+                        title: finalTitle,
+                        performer: finalPerformer,
+                        index01: finalIndex
                     };
                 });
             }
@@ -395,6 +456,13 @@ export const CueEditor: React.FC = () => {
                 isOpen={isGnuDbModalOpen}
                 onClose={() => setIsGnuDbModalOpen(false)}
                 onSuccess={handleGnuDbSuccess}
+            />
+
+            <DiscogsModal
+                isOpen={isDiscogsModalOpen}
+                onClose={() => setIsDiscogsModalOpen(false)}
+                onSuccess={handleDiscogsSuccess}
+                totalDuration={cue.totalDuration}
             />
         </div>
     );

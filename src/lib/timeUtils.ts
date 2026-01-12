@@ -41,6 +41,20 @@ export function framesToTime(frames: number): string {
 }
 
 /**
+ * Converts MM:SS or HH:MM:SS to absolute seconds.
+ */
+export function mmssToSeconds(duration: string): number {
+    if (!duration) return 0;
+    const parts = duration.split(':').map(Number);
+    if (parts.length === 2) {
+        return parts[0] * 60 + parts[1];
+    } else if (parts.length === 3) {
+        return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    }
+    return 0;
+}
+
+/**
  * Validates if the string is in MM:SS:FF format or M:SS:FF
  */
 export function isValidTimeFormat(str: string): boolean {

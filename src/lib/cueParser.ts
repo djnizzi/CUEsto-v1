@@ -16,6 +16,7 @@ export interface CueSheet {
     genre?: string;
     totalDuration?: number; // Total duration in frames
     gnucdid?: string;
+    discogs?: string; // REM DISCOGS [releaseCode]
     tracks: CueTrack[];
 }
 
@@ -58,6 +59,9 @@ export function parseCue(content: string): CueSheet {
         } else if (trimmed.startsWith('REM GNUCDID')) {
             const val = removeQuotes(trimmed.substring(12).trim());
             cue.gnucdid = val;
+        } else if (trimmed.startsWith('REM DISCOGS')) {
+            const val = removeQuotes(trimmed.substring(12).trim());
+            cue.discogs = val;
         } else if (trimmed.startsWith('FILE')) {
             // FILE "filename" WAVE
             const match = trimmed.match(/^FILE\s+"(.*)"\s+\w+$/);
@@ -101,13 +105,14 @@ export function parseCue(content: string): CueSheet {
     return cue;
 }
 
-export function generateCue(cue: CueSheet, version: string = '1.0.3'): string {
+export function generateCue(cue: CueSheet, version: string = '1.0.6'): string {
     let output = '';
     if (cue.performer) output += `PERFORMER "${cue.performer}"\n`;
     if (cue.title) output += `TITLE "${cue.title}"\n`;
     if (cue.date) output += `REM DATE "${cue.date}"\n`;
     if (cue.genre) output += `REM GENRE "${cue.genre}"\n`;
     if (cue.gnucdid) output += `REM GNUCDID "${cue.gnucdid}"\n`;
+    if (cue.discogs) output += `REM DISCOGS "${cue.discogs}"\n`;
 
     if (cue.totalDuration) {
         output += `REM TOTAL DURATION ${framesToTime(cue.totalDuration)}\n`;

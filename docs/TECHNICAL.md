@@ -17,22 +17,25 @@ CUEsto is a modern, Electron-based desktop application for editing CUE sheets. I
 - **`dialog:saveFile`**: Handles saving the generated CUE content to disk.
 - **`getAppVersion`**: Returns the current application version from `package.json`.
 - **`gnudb:fetchMetadata`**: Facilitates context-specific CD lookup from `gnudb.org`.
+- **`discogs:fetchMetadata`**: Retrieves release data directly from the Discogs API. Requires a `DISCOGS_TOKEN` in `electron/credentials.ts` (or `secrets.ini`).
 - **`browser:get-status`**: Returns the current status (canGoBack, canGoForward, title, url) of the active `WebContentsView`.
 - **`browser:go-back` / `browser:go-forward`**: Triggers navigation in the target browser view.
 - **`browser:status-updated` (Event)**: Pushed from main to renderer whenever navigation or title changes occur in the embedded view.
 
 ### Key Components
-- **`CueEditor.tsx`**: The main container component that manages the state of the CUE sheet (`CueSheet` object). It implements the selective overwrite logic for GnuDB imports and handles the display of calculated durations.
+- **`CueEditor.tsx`**: The main container component that manages the state of the CUE sheet (`CueSheet` object). It implements the selective overwrite logic for GnuDB and Discogs imports and handles the display of calculated durations.
 - **`BrowserShell.tsx`**: A specialized view for the internal search browser. It provides a navigation header and syncs its state with the main process's `WebContentsView`.
 - **`GnuDbModal.tsx`**: A dedicated modal for GnuDB integration. It manages internal state for selective overwrite options and handles link redirection to the custom browser.
+- **`DiscogsModal.tsx`**: A dedicated modal for Discogs integration. It supports selective overwrite and features an advanced **Interpolation** mode for track timings.
 - **`TrackRow.tsx`**: Represents a single track in the cue sheet. Contains inputs for title, performer, start time, and duration.
 - **`MetadataHeader.tsx`**: Displays and edits global CUE properties. Includes the audio file selector (disc icon) and total duration display.
 - **`TimeInput.tsx`**: A specialized input component for handling timestamp formats (MM:SS:FF). Supports a read-only mode for calculated fields.
 
 ### Utilities
-- **`cueParser.ts`**: Handles parsing of .cue files and generation of output. Now supports `REM TOTAL DURATION` and `REM GNUCDID` for enhanced metadata persistence.
+- **`cueParser.ts`**: Handles parsing of .cue files and generation of output. Now supports `REM TOTAL DURATION`, `REM GNUCDID`, and `REM DISCOGS` for enhanced metadata persistence.
 - **`tracklistParser.ts`**: Implements 1001tracklists.com HTML parsing using the browser's native `DOMParser`. It extracts metadata, tracks, and handles mashup logic (merging sub-tracks).
 - **`gnudb.ts`**: Facilitates interaction with the `gnudb:fetchMetadata` IPC handler and defines types for `OverwriteOptions`.
+- **`discogs.ts`**: Implements track duration interpolation and bridges the gap between raw Discogs API responses and CUE-compatible track structures.
 - **`timeUtils.ts`**: Helper functions for frame/time conversions (75 frames per second).
 - **Audio Metadata**: Uses `music-metadata` in the main process (via `dialog:openAudioFile` IPC) to extract duration and tags (Artist, Title, Year, Genre).
 

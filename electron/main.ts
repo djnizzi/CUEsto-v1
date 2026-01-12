@@ -5,7 +5,48 @@ import fs from 'node:fs/promises'
 import * as mm from 'music-metadata'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-// ... (keep constants)
+
+async function getSecrets() {
+  try {
+    const rootPath = path.join(process.env.APP_ROOT || path.join(__dirname, '..'), '..');
+
+    // 1. Try to read from electron/credentials.ts first
+    const v1Path = path.join(rootPath, 'v1');
+    const credsPath = path.join(v1Path, 'electron', 'credentials.ts');
+    try {
+      const credsContent = await fs.readFile(credsPath, 'utf-8');
+      const tokenMatch = credsContent.match(/DISCOGS_TOKEN\s*=\s*(['"`])(.*?)\1/);
+      if (tokenMatch && tokenMatch[2]) {
+        console.log('Using Discogs token from credentials.ts');
+        return { API: { key: tokenMatch[2] }, APP: { appname: 'CUEsto' } };
+      }
+    } catch (e) {
+      // credentials.ts doesn't exist or is invalid, fall through to secrets.ini
+    }
+
+    // 2. Fallback to secrets.ini
+    const secretsPath = path.join(rootPath, 'secrets.ini');
+    const content = await fs.readFile(secretsPath, 'utf-8');
+    const secrets: Record<string, any> = { API: {}, USER: {}, APP: {} };
+    let currentSection = '';
+
+    content.split(/\r?\n/).forEach(line => {
+      const sectionMatch = line.match(/^\[(.*)\]$/);
+      if (sectionMatch) {
+        currentSection = sectionMatch[1];
+      } else if (line.includes('=') && currentSection) {
+        const [key, value] = line.split('=').map(s => s.trim());
+        if (secrets[currentSection]) {
+          secrets[currentSection][key] = value;
+        }
+      }
+    });
+    return secrets;
+  } catch (e) {
+    console.error('Failed to read secrets.ini:', e);
+    return null;
+  }
+}
 
 // Handlers
 ipcMain.handle('dialog:openFile', async () => {
@@ -152,6 +193,83 @@ ipcMain.handle('gnudb:fetchMetadata', async (_, gnucdid: string) => {
 
   return { error: 'Failed to retrieve metadata after multiple attempts.' };
 });
+
+ipcMain.handle('discogs:fetchMetadata', async (_, releaseCode: string) => {
+  const secrets = await getSecrets();
+  if (!secrets || !secrets.API?.key) {
+    return { error: 'Discogs API key not found in secrets.ini' };
+  }
+
+  const apiKey = secrets.API.key;
+  const userAgent = `${secrets.APP?.appname || 'CUEsto'}/1.0.6`;
+
+  // Accept r12345, [r12345], 12345 etc.
+  const releaseId = releaseCode.replace(/\D/g, '');
+  if (!releaseId) {
+    return { error: 'Invalid release code format. Please provide the numeric release ID.' };
+  }
+  const url = `https://api.discogs.com/releases/${releaseId}`;
+
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Discogs token=${apiKey}`,
+        'User-Agent': userAgent
+      }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      const result = parseDiscogsData(data, releaseId);
+      if (result) {
+        return { result };
+      } else {
+        return { error: 'Failed to parse Discogs response.' };
+      }
+    }
+
+    if (response.status === 404) {
+      return { error: 'Release not found in Discogs (404).' };
+    }
+
+    return { error: `Discogs returned an error: ${response.status} ${response.statusText}` };
+
+  } catch (e: any) {
+    console.error(`Discogs fetch error:`, e.message);
+    return { error: `Connection error: ${e.message}` };
+  }
+});
+
+function parseDiscogsData(data: any, releaseId?: string) {
+  try {
+    const artist = data.artists?.map((a: any) => a.name.replace(/\s\(\d+\)$/, '')).join(', ') || 'Unknown Artist';
+    const album = data.title || 'Unknown Album';
+    const year = data.year?.toString() || '';
+    const genre = data.genres?.[0] || '';
+
+    const tracks = (data.tracklist || [])
+      .filter((t: any) => t.type_ === 'track')
+      .map((t: any, i: number) => {
+        let tArtist = artist;
+        if (t.artists && t.artists.length > 0) {
+          tArtist = t.artists.map((a: any) => a.name.replace(/\s\(\d+\)$/, '')).join(', ');
+        }
+
+        return {
+          number: i + 1,
+          title: t.title || 'Untitled',
+          performer: tArtist || artist,
+          duration: t.duration || '',
+          position: t.position || ''
+        };
+      });
+
+    return { artist, album, year, genre, tracks, releaseCode: releaseId };
+  } catch (e) {
+    console.error('Error parsing Discogs data:', e);
+    return null;
+  }
+}
 
 function getBrowserStatus(view: WebContentsView) {
   return {
