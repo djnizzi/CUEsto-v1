@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { MetadataHeader } from './MetadataHeader';
 import { TrackRow } from './TrackRow';
 import { CueSheet, CueTrack, generateCue, parseCue } from '../lib/cueParser';
-import { timeToFrames } from '../lib/timeUtils';
+import { timeToFrames, parseAudacityLabels } from '../lib/timeUtils';
 import { parse1001Tracklist } from '../lib/tracklistParser';
 import { GnuDbModal } from './GnuDbModal';
 import { GnuDbResult, OverwriteOptions } from '../lib/gnudb';
 import { DiscogsModal } from './DiscogsModal';
 import { DiscogsOptions, DiscogsResult, interpolateDurations, discogsTracksToCueTracks } from '../lib/discogs';
+import { ConfirmModal } from './ConfirmModal';
 
 // Dummy initial state or empty
 const INITIAL_CUE: CueSheet = {
@@ -28,7 +29,8 @@ export const CueEditor: React.FC = () => {
     const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
     const [isGnuDbModalOpen, setIsGnuDbModalOpen] = useState(false);
     const [isDiscogsModalOpen, setIsDiscogsModalOpen] = useState(false);
-    const [appVersion, setAppVersion] = useState('1.0.3');
+    const [isConfirmClearOpen, setIsConfirmClearOpen] = useState(false);
+    const [appVersion, setAppVersion] = useState('1.0.7');
 
     const showSaveToast = () => {
         setShowToast(true);
@@ -165,6 +167,16 @@ export const CueEditor: React.FC = () => {
         });
     };
 
+    const handleClear = () => {
+        setIsConfirmClearOpen(true);
+    };
+
+    const confirmClear = () => {
+        setCue(INITIAL_CUE);
+        setCurrentFilePath(null);
+        setIsConfirmClearOpen(false);
+    };
+
     const handleOpenFile = async () => {
         try {
             if (!(window as any).ipcRenderer) return;
@@ -230,6 +242,29 @@ export const CueEditor: React.FC = () => {
             setIsGnuDbModalOpen(true);
         } else if (source === 'discogs') {
             setIsDiscogsModalOpen(true);
+        } else if (source === 'audacity') {
+            try {
+                if (!(window as any).ipcRenderer) return;
+                const result = await (window as any).ipcRenderer.invoke('dialog:openLabels');
+                if (result) {
+                    const { content } = result;
+                    const audacityTracks = parseAudacityLabels(content);
+                    setCue(prev => ({
+                        ...prev,
+                        tracks: audacityTracks.map((at, i) => {
+                            const prevTrack = prev.tracks[i];
+                            return {
+                                number: i + 1,
+                                title: (prevTrack?.title && prevTrack.title.trim()) ? prevTrack.title : at.title,
+                                performer: (prevTrack?.performer && prevTrack.performer.trim()) ? prevTrack.performer : at.performer,
+                                index01: at.index01
+                            };
+                        })
+                    }));
+                }
+            } catch (e) {
+                console.error('Audacity import failed', e);
+            }
         } else {
             console.log('Import source not implemented:', source);
         }
@@ -434,6 +469,9 @@ export const CueEditor: React.FC = () => {
                     <button onClick={handleAddRow} className="bg-brand-orange text-brand-darker font-medium rounded-full px-4 py-2 hover:shadow-[0_0_8px_var(--color-brand-orange)] transition text-sm">
                         add row
                     </button>
+                    <button onClick={handleClear} className="bg-brand-orange text-brand-darker font-medium rounded-full px-4 py-2 hover:shadow-[0_0_8px_var(--color-brand-orange)] transition text-sm">
+                        clear
+                    </button>
                     {currentFilePath && (
                         <button onClick={handleSave} className="bg-brand-orange text-brand-darker font-medium rounded-full px-4 py-2 hover:shadow-[0_0_8px_var(--color-brand-orange)] transition text-sm">
                             save
@@ -463,6 +501,14 @@ export const CueEditor: React.FC = () => {
                 onClose={() => setIsDiscogsModalOpen(false)}
                 onSuccess={handleDiscogsSuccess}
                 totalDuration={cue.totalDuration}
+            />
+
+            <ConfirmModal
+                isOpen={isConfirmClearOpen}
+                title="clear all fields?"
+                message="this will reset the entire cue sheet and tracklist. any unsaved changes will be lost."
+                onConfirm={confirmClear}
+                onCancel={() => setIsConfirmClearOpen(false)}
             />
         </div>
     );

@@ -52,7 +52,7 @@ export const MetadataHeader: React.FC<MetadataHeaderProps> = ({
                         onClick={() => onImport(src)}
                         className="bg-brand-orange text-brand-darker font-medium rounded-full px-4 py-2 hover:shadow-[0_0_8px_var(--color-brand-orange)] transition text-sm"
                     >
-                        import from {src}
+                        {src === 'audacity' ? 'import audacity labels' : `import from ${src}`}
                     </button>
                 ))}
             </div>

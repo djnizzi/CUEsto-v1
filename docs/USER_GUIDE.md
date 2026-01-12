@@ -67,6 +67,16 @@ CUEsto provides a powerful integration with **Discogs**, the premier music datab
    - **Interpolate Start Times/Durations**: (Requires a linked audio file) This advanced feature uses your audio file's total length to adjust the Discogs track durations, providing a higher-precision estimate of track start times.
 5. **Persistence**: When you import from Discogs, CUEsto automatically saves the release ID as a `REM DISCOGS` line in your CUE file.
 
+### Importing from Audacity
+CUEsto supports importing timing and label data from **Audacity Labels** files.
+1. In Audacity, ensure your labels are set up (`Tracks` -> `Add New` -> `Label Track`).
+2. Export your labels (`File` -> `Export` -> `Export Labels...`) as a `.txt` file.
+3. In CUEsto, click **"import audacity labels"**.
+4. Select the exported `.txt` file.
+5. **Conditional Update**:
+   - **Start Times**: All track timings are unconditionally updated from the Audacity file.
+   - **Titles/Performers**: These are only updated if the current fields in CUEsto are empty. This allows you to re-sync timings from Audacity without losing any manual track naming corrections you've made in the editor.
+
 ### Editing Tracks
 - **Title/Performer**: Click directly on the text fields to edit the track title or performer.
 - **Start Time**: Edit the start time of a track. The duration of the previous track will be automatically recalculated.
@@ -75,7 +85,10 @@ CUEsto provides a powerful integration with **Discogs**, the premier music datab
   - If an audio file is linked, the duration of the final track is calculated automatically.
   - If a `REM TOTAL DURATION` line is present in the CUE file, CUEsto will use it to display the total length and final track duration even without the audio file.
   - **Smart Visibility**: If neither an audio file nor a duration tag is available, the duration field for the final track is hidden to prevent confusion.
-- **Add/Remove**: Use the **"Add Row"** button at the bottom to add a new track. Click the trash icon next to a track to remove it.
+- **Add/Remove/Clear**: 
+  - Click **"Add Row"** to add a new track.
+  - Click the **trash icon** to remove a specific track.
+  - Click **"Clear"** to reset the entire cue sheet. A confirmation modal will appear to prevent accidental data loss.
 
 ### Saving
 When you are happy with your changes, click the **"Save"** button at the bottom right. A confirmation message will appear confirming that your file has been saved.

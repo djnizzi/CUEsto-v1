@@ -75,6 +75,20 @@ ipcMain.handle('dialog:openHtml', async () => {
   }
 })
 
+ipcMain.handle('dialog:openLabels', async () => {
+  const { canceled, filePaths } = await dialog.showOpenDialog({
+    properties: ['openFile'],
+    filters: [{ name: 'Audacity Labels', extensions: ['txt'] }]
+  })
+  if (canceled) {
+    return null
+  } else {
+    const content = await fs.readFile(filePaths[0], 'utf-8')
+    return { content, filepath: filePaths[0] }
+  }
+})
+
+
 ipcMain.handle('dialog:openAudioFile', async () => {
   const { canceled, filePaths } = await dialog.showOpenDialog({
     properties: ['openFile'],

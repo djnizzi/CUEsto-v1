@@ -60,3 +60,49 @@ export function mmssToSeconds(duration: string): number {
 export function isValidTimeFormat(str: string): boolean {
     return /^\d+:\d{2}:\d{2}$/.test(str);
 }
+export interface AudacityTrack {
+    title: string;
+    performer: string;
+    index01: number; // in frames
+}
+
+/**
+ * Parses an Audacity labels file (tab-separated: start \t end \t label).
+ * Following the logic in functions.py:
+ * - First track always starts at 00:00:00.
+ * - Subsequent tracks start at the time specified in the labels file.
+ */
+export function parseAudacityLabels(content: string): AudacityTrack[] {
+    const tracks: AudacityTrack[] = [];
+    const lines = content.split(/\r?\n/).filter(line => line.trim() !== '');
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const parts = line.split('\t');
+        if (parts.length < 3) continue;
+
+        const startTime = parseFloat(parts[0]);
+        const label = parts[2].trim();
+
+        let artist = 'Artist';
+        let song = label;
+        if (label.includes(' - ')) {
+            const labelParts = label.split(' - ');
+            artist = labelParts[0].trim();
+            song = labelParts.slice(1).join(' - ').trim();
+        }
+
+        if (!song) song = `Title ${i + 1}`;
+
+        // First track starts at 0, others start at their specified time
+        const actualStartTime = i === 0 ? 0 : startTime;
+
+        tracks.push({
+            title: song,
+            performer: artist,
+            index01: Math.floor(actualStartTime * 75)
+        });
+    }
+
+    return tracks;
+}
