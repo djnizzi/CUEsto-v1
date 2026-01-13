@@ -3,8 +3,15 @@ import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import fs from 'node:fs/promises'
 import * as mm from 'music-metadata'
+import { MusicBrainzApi } from 'musicbrainz-api'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+const mbApi = new MusicBrainzApi({
+  appName: 'CUEsto',
+  appVersion: '1.0.8', // We'll update this or get from package.json if needed
+  appContactInfo: 'https://github.com/NiZDesign/cuesto'
+});
 
 async function getSecrets() {
   const rootPath = path.join(process.env.APP_ROOT || path.join(__dirname, '..'), '..');
@@ -233,6 +240,40 @@ ipcMain.handle('discogs:fetchMetadata', async (_, releaseCode: string) => {
   } catch (e: any) {
     console.error(`Discogs fetch error:`, e.message);
     return { error: `Connection error: ${e.message}` };
+  }
+});
+
+ipcMain.handle('musicbrainz:fetchMetadata', async (_, discId: string) => {
+  try {
+    // lookupDiscId is not available in v1.0.0, use restGet instead
+    // MusicBrainz API for discid: /ws/2/discid/<discid>?inc=recordings+artists+labels+release-groups&fmt=json
+    // NOTE: 'releases' and 'discids' are not valid/needed here for the discid resource.
+    const disc: any = await (mbApi as any).restGet(`/discid/${discId}`, {
+      inc: 'recordings artists labels release-groups'
+    });
+
+    // MusicBrainz can return an error object with a 200 status code in some cases or via restGet
+    if (disc && disc.error) {
+      return { error: `MusicBrainz API error: ${disc.error}` };
+    }
+
+    if (disc && disc.releases && disc.releases.length > 0) {
+      // Return the disc details (offsets) and the first release
+      return { result: { disc, release: disc.releases[0] } };
+    }
+
+    if (disc && disc.id && (!disc.releases || disc.releases.length === 0)) {
+      return { error: 'Disc ID found as a "CD Stub" but not yet attached to any release in MusicBrainz.' };
+    }
+
+    return { error: 'No releases found for this Disc ID.' };
+  } catch (e: any) {
+    console.error('MusicBrainz fetch error:', e);
+    // If it's a 404 from the API, it means the Disc ID itself isn't known
+    if (e.message?.includes('404')) {
+      return { error: 'Disc ID not found in MusicBrainz database.' };
+    }
+    return { error: `MusicBrainz error: ${e.message}` };
   }
 });
 

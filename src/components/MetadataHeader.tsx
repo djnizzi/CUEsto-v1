@@ -46,15 +46,21 @@ export const MetadataHeader: React.FC<MetadataHeaderProps> = ({
                 <button onClick={onOpenFile} className="bg-brand-orange text-brand-darker font-medium rounded-full px-4 py-2 hover:shadow-[0_0_8px_var(--color-brand-orange)] transition text-sm">
                     open file
                 </button>
-                {['gnudb', '1001tracklists', 'discogs', 'audacity'].map(src => (
-                    <button
-                        key={src}
-                        onClick={() => onImport(src)}
-                        className="bg-brand-orange text-brand-darker font-medium rounded-full px-4 py-2 hover:shadow-[0_0_8px_var(--color-brand-orange)] transition text-sm"
-                    >
-                        {src === 'audacity' ? 'import audacity labels' : `import from ${src}`}
-                    </button>
-                ))}
+                <button onClick={() => onImport('gnudb')} className="bg-brand-orange text-brand-darker font-medium rounded-full px-4 py-2 hover:shadow-[0_0_8px_var(--color-brand-orange)] transition text-sm">
+                    import from gnudb
+                </button>
+                <button onClick={() => onImport('1001tracklists')} className="bg-brand-orange text-brand-darker font-medium rounded-full px-4 py-2 hover:shadow-[0_0_8px_var(--color-brand-orange)] transition text-sm">
+                    import from 1001tracklists
+                </button>
+                <button onClick={() => onImport('discogs')} className="bg-brand-orange text-brand-darker font-medium rounded-full px-4 py-2 hover:shadow-[0_0_8px_var(--color-brand-orange)] transition text-sm">
+                    import from discogs
+                </button>
+                <button onClick={() => onImport('musicbrainz')} className="bg-brand-orange text-brand-darker font-medium rounded-full px-4 py-2 hover:shadow-[0_0_8px_var(--color-brand-orange)] transition text-sm">
+                    import from musicbrainz
+                </button>
+                <button onClick={() => onImport('audacity')} className="bg-brand-orange text-brand-darker font-medium rounded-full px-4 py-2 hover:shadow-[0_0_8px_var(--color-brand-orange)] transition text-sm">
+                    import audacity labels
+                </button>
             </div>
 
             <div className="w-full">

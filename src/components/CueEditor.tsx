@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
 import { MetadataHeader } from './MetadataHeader';
 import { TrackRow } from './TrackRow';
+import { MusicBrainzModal } from './MusicBrainzModal';
+import { musicbrainzToCue, MusicBrainzResult } from '../lib/musicbrainz';
 import { CueSheet, CueTrack, generateCue, parseCue } from '../lib/cueParser';
 import { timeToFrames, parseAudacityLabels } from '../lib/timeUtils';
 import { parse1001Tracklist } from '../lib/tracklistParser';
 import { GnuDbModal } from './GnuDbModal';
 import { GnuDbResult, OverwriteOptions } from '../lib/gnudb';
 import { DiscogsModal } from './DiscogsModal';
-import { DiscogsOptions, DiscogsResult, interpolateDurations, discogsTracksToCueTracks } from '../lib/discogs';
+import { DiscogsOptions, DiscogsResult, interpolateTimings, discogsTracksToCueTracks } from '../lib/discogs';
 import { ConfirmModal } from './ConfirmModal';
+
+type MusicBrainzOptions = DiscogsOptions;
 
 // Dummy initial state or empty
 const INITIAL_CUE: CueSheet = {
@@ -29,6 +33,7 @@ export const CueEditor: React.FC = () => {
     const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
     const [isGnuDbModalOpen, setIsGnuDbModalOpen] = useState(false);
     const [isDiscogsModalOpen, setIsDiscogsModalOpen] = useState(false);
+    const [isMusicBrainzModalOpen, setIsMusicBrainzModalOpen] = useState(false);
     const [isConfirmClearOpen, setIsConfirmClearOpen] = useState(false);
     const [appVersion, setAppVersion] = useState('1.0.7');
 
@@ -265,9 +270,54 @@ export const CueEditor: React.FC = () => {
             } catch (e) {
                 console.error('Audacity import failed', e);
             }
+        } else if (source === 'musicbrainz') {
+            setIsMusicBrainzModalOpen(true);
         } else {
             console.log('Import source not implemented:', source);
         }
+    };
+
+    const handleMusicBrainzSuccess = (data: MusicBrainzResult, options: MusicBrainzOptions) => {
+        const mbCue = musicbrainzToCue(data);
+
+        setCue(prev => {
+            const newCue = { ...prev };
+            newCue.mb_discid = mbCue.mb_discid;
+            newCue.barcode = mbCue.barcode;
+            newCue.label = mbCue.label;
+            newCue.catalog = mbCue.catalog;
+
+            if (options.header || !prev.performer) newCue.performer = mbCue.performer || prev.performer;
+            if (options.header || !prev.title) newCue.title = mbCue.title || prev.title;
+            if (options.header || !prev.date) newCue.date = mbCue.date || prev.date;
+            if (options.header || !prev.genre) newCue.genre = mbCue.genre || prev.genre;
+
+            if (options.trackTitles || options.trackPerformers || options.timings || prev.tracks.length === 0) {
+                let finalTracks = mbCue.tracks || [];
+
+                if (options.interpolate && prev.totalDuration && finalTracks.length > 0) {
+                    // Inject durations for interpolation if missing
+                    const tracksWithDurations = finalTracks.map((t, i) => {
+                        const next = finalTracks[i + 1];
+                        const duration = next ? next.index01 - t.index01 : 0;
+                        return { ...t, duration };
+                    });
+                    finalTracks = interpolateTimings(tracksWithDurations, prev.totalDuration);
+                }
+
+                newCue.tracks = finalTracks.map((mTrack, i) => {
+                    const prevTrack = prev.tracks[i];
+                    return {
+                        number: mTrack.number,
+                        title: (options.trackTitles || !prevTrack?.title) ? mTrack.title : (prevTrack?.title || mTrack.title),
+                        performer: (options.trackPerformers || !prevTrack?.performer) ? mTrack.performer : (prevTrack?.performer || mTrack.performer),
+                        index01: (options.timings || prevTrack?.index01 === undefined) ? mTrack.index01 : (prevTrack?.index01 || mTrack.index01)
+                    };
+                });
+            }
+
+            return newCue;
+        });
     };
 
     const handleGnuDbSuccess = (result: GnuDbResult, options: OverwriteOptions) => {
@@ -331,7 +381,7 @@ export const CueEditor: React.FC = () => {
                 let newTracks: CueTrack[] = [];
 
                 if (options.interpolate && prev.totalDuration) {
-                    newTracks = interpolateDurations(discTracks, prev.totalDuration);
+                    newTracks = interpolateTimings(discTracks as any, prev.totalDuration);
                 } else {
                     newTracks = discogsTracksToCueTracks(discTracks);
                 }
@@ -512,6 +562,12 @@ export const CueEditor: React.FC = () => {
                 onClose={() => setIsDiscogsModalOpen(false)}
                 onSuccess={handleDiscogsSuccess}
                 totalDuration={cue.totalDuration}
+            />
+
+            <MusicBrainzModal
+                isOpen={isMusicBrainzModalOpen}
+                onClose={() => setIsMusicBrainzModalOpen(false)}
+                onSuccess={handleMusicBrainzSuccess}
             />
 
             <ConfirmModal

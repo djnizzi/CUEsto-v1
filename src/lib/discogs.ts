@@ -45,15 +45,15 @@ export async function fetchDiscogsMetadata(releaseCode: string): Promise<{ resul
  * Interpolates Discogs track durations to match the total duration of the local file.
  * Logic ported from functions.py: interpol_realtime
  */
-export function interpolateDurations(
-    tracks: DiscogsResult['tracks'],
-    totalFileDurationFrames: number
-): CueTrack[] {
-    // 1. Convert Discogs durations to total seconds
-    const trackDurationsSeconds = tracks.map(t => mmssToSeconds(t.duration));
+export function interpolateTimings(tracks: any[], totalLengthFrames: number): CueTrack[] {
+    const trackDurationsSeconds = tracks.map(t => {
+        if (typeof t.duration === 'string') return mmssToSeconds(t.duration);
+        if (typeof t.duration === 'number') return t.duration / 75; // assume frames
+        return 0;
+    });
     const totalDiscogsDurationSeconds = trackDurationsSeconds.reduce((acc, d) => acc + d, 0);
 
-    const totalFileDurationSeconds = totalFileDurationFrames / 75;
+    const totalFileDurationSeconds = totalLengthFrames / 75;
     const ratio = totalDiscogsDurationSeconds > 0 ? totalFileDurationSeconds / totalDiscogsDurationSeconds : 1;
 
     let currentOffsetFrames = 0;

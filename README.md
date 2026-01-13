@@ -2,7 +2,7 @@
 > A modern, electron-based CUE sheet editor built for speed and aesthetics.
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-![Version](https://img.shields.io/badge/version-v1.0.8-green.svg)
+![Version](https://img.shields.io/badge/version-v1.0.9-green.svg)
 ![Status](https://img.shields.io/badge/status-active-success.svg)
 
 **CUEsto** is a powerful desktop application designed to make CUE sheet editing effortless. Built with modern web technologies, it offers a sleek dark-mode interface, real-time duration calculations, and intuitive metadata management.
@@ -12,9 +12,10 @@
 - 🎨 **Modern UI**: A focused, dark-themed interface built with TailwindCSS.
 - ⚡ **Fast & Responsive**: Built on Vite and React for instant feedback.
 - 🕵️ **CUE Viewer**: Inspect your raw CUE sheet with syntax highlighting in a dedicated window.
-- ⏱️ **Metadata Persistence**: Support for custom `REM` lines, including `TOTAL DURATION`, `GNUCDID`, and `DISCOGS` for tracking source metadata across sessions.
+- ⏱️ **Metadata Persistence**: Support for custom `REM` lines, including `TOTAL DURATION`, `GNUCDID`, `DISCOGS`, and `MUSICBRAINZ_DISCID`.
+- 🏷️ **Enhanced Metadata**: Auto-captures and saves `BARCODE`, `LABEL`, and `CATALOG` number from MusicBrainz.
 - 🎵 **Audio Integration**: Link audio files to your CUE sheet. Automatically extract duration and metadata (performer, title, year, genre) from audio files.
-- 📥 **Import Tools**: Support for importing tracklists from **GnuDB**, **1001tracklists**, **Discogs**, and **Audacity**. The GnuDB import features a customized internal browser, while the Audacity import supports high-precision timing labels.
+- 📥 **Import Tools**: Support for importing tracklists from **GnuDB**, **1001tracklists**, **Discogs**, **MusicBrainz**, and **Audacity**.
 - 🖥️ **Cross-Platform**: Runs on Windows, Mac, and Linux (via Electron).
 
 ## Quick Start
