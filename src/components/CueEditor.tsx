@@ -400,6 +400,14 @@ export const CueEditor: React.FC = () => {
         }
     };
 
+    const handleViewCue = () => {
+        if (!(window as any).ipcRenderer) return;
+        const data = generateCue(cue, appVersion);
+        (window as any).ipcRenderer.invoke('window:open-viewer', data);
+    };
+
+    // Rendering Helper: Calculate durations for display
+
     // Rendering Helper: Calculate durations for display
     const getRenderDuration = (index: number) => {
         if (index < cue.tracks.length - 1) {
@@ -468,6 +476,9 @@ export const CueEditor: React.FC = () => {
                 <div className="flex justify-end gap-4 mt-8">
                     <button onClick={handleAddRow} className="bg-brand-orange text-brand-darker font-medium rounded-full px-4 py-2 hover:shadow-[0_0_8px_var(--color-brand-orange)] transition text-sm">
                         add row
+                    </button>
+                    <button onClick={handleViewCue} className="bg-brand-orange text-brand-darker font-medium rounded-full px-4 py-2 hover:shadow-[0_0_8px_var(--color-brand-orange)] transition text-sm">
+                        view cue
                     </button>
                     <button onClick={handleClear} className="bg-brand-orange text-brand-darker font-medium rounded-full px-4 py-2 hover:shadow-[0_0_8px_var(--color-brand-orange)] transition text-sm">
                         clear

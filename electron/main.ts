@@ -7,45 +7,28 @@ import * as mm from 'music-metadata'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 async function getSecrets() {
+  const rootPath = path.join(process.env.APP_ROOT || path.join(__dirname, '..'), '..');
+  const v1Path = path.join(rootPath, 'v1');
+  const credsPath = path.join(v1Path, 'electron', 'credentials.ts');
+
+  console.log(`Checking Discogs credentials at: ${credsPath}`);
+
   try {
-    const rootPath = path.join(process.env.APP_ROOT || path.join(__dirname, '..'), '..');
-
-    // 1. Try to read from electron/credentials.ts first
-    const v1Path = path.join(rootPath, 'v1');
-    const credsPath = path.join(v1Path, 'electron', 'credentials.ts');
-    try {
-      const credsContent = await fs.readFile(credsPath, 'utf-8');
-      const tokenMatch = credsContent.match(/DISCOGS_TOKEN\s*=\s*(['"`])(.*?)\1/);
-      if (tokenMatch && tokenMatch[2]) {
-        console.log('Using Discogs token from credentials.ts');
-        return { API: { key: tokenMatch[2] }, APP: { appname: 'CUEsto' } };
-      }
-    } catch (e) {
-      // credentials.ts doesn't exist or is invalid, fall through to secrets.ini
+    const credsContent = await fs.readFile(credsPath, 'utf-8');
+    const tokenMatch = credsContent.match(/DISCOGS_TOKEN\s*=\s*(['"`])(.*?)\1/);
+    if (tokenMatch && tokenMatch[2]) {
+      const token = tokenMatch[2];
+      console.log(`[AUTH] Found token in credentials.ts: "${token}"`);
+      return { API: { key: token }, APP: { appname: 'CUEsto' } };
+    } else {
+      console.warn('[AUTH] credentials.ts found but DISCOGS_TOKEN match failed.');
+      console.log('[AUTH] File content snippet:', credsContent.substring(0, 100).replace(/\r?\n/g, ' '));
     }
-
-    // 2. Fallback to secrets.ini
-    const secretsPath = path.join(rootPath, 'secrets.ini');
-    const content = await fs.readFile(secretsPath, 'utf-8');
-    const secrets: Record<string, any> = { API: {}, USER: {}, APP: {} };
-    let currentSection = '';
-
-    content.split(/\r?\n/).forEach(line => {
-      const sectionMatch = line.match(/^\[(.*)\]$/);
-      if (sectionMatch) {
-        currentSection = sectionMatch[1];
-      } else if (line.includes('=') && currentSection) {
-        const [key, value] = line.split('=').map(s => s.trim());
-        if (secrets[currentSection]) {
-          secrets[currentSection][key] = value;
-        }
-      }
-    });
-    return secrets;
-  } catch (e) {
-    console.error('Failed to read secrets.ini:', e);
-    return null;
+  } catch (e: any) {
+    console.error(`[AUTH] Error reading credentials.ts: ${e.message}`);
   }
+
+  return null;
 }
 
 // Handlers
@@ -211,7 +194,7 @@ ipcMain.handle('gnudb:fetchMetadata', async (_, gnucdid: string) => {
 ipcMain.handle('discogs:fetchMetadata', async (_, releaseCode: string) => {
   const secrets = await getSecrets();
   if (!secrets || !secrets.API?.key) {
-    return { error: 'Discogs API key not found in secrets.ini' };
+    return { error: 'Discogs API token not found. Please add it to electron/credentials.ts.' };
   }
 
   const apiKey = secrets.API.key;
@@ -247,11 +230,21 @@ ipcMain.handle('discogs:fetchMetadata', async (_, releaseCode: string) => {
     }
 
     return { error: `Discogs returned an error: ${response.status} ${response.statusText}` };
-
   } catch (e: any) {
     console.error(`Discogs fetch error:`, e.message);
     return { error: `Connection error: ${e.message}` };
   }
+});
+
+let viewerContent = '';
+
+ipcMain.handle('window:open-viewer', (_, content: string) => {
+  viewerContent = content;
+  createViewerWindow();
+});
+
+ipcMain.handle('viewer:get-content', () => {
+  return viewerContent;
 });
 
 function parseDiscogsData(data: any, releaseId?: string) {
@@ -389,6 +382,27 @@ function createSearchWindow(url: string) {
   });
 
   return searchWin;
+}
+
+function createViewerWindow() {
+  const viewerWin = new BrowserWindow({
+    width: 800,
+    height: 800,
+    icon: path.join(process.env.VITE_PUBLIC, 'cuesto.ico'),
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.mjs'),
+    },
+    autoHideMenuBar: true,
+  });
+  viewerWin.setMenu(null);
+
+  if (VITE_DEV_SERVER_URL) {
+    viewerWin.loadURL(`${VITE_DEV_SERVER_URL}?mode=viewer`);
+  } else {
+    viewerWin.loadFile(path.join(RENDERER_DIST, 'index.html'), { query: { mode: 'viewer' } });
+  }
+
+  return viewerWin;
 }
 
 function parseGnuDbData(data: string) {

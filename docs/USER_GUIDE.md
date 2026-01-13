@@ -10,6 +10,7 @@ CUEsto is a dedicated tool for creating and editing CUE sheets with ease. Whethe
 - **Audio Integration**: Automatically extract duration and metadata tags (title, artist, year, genre) from your audio files.
 - **Metadata Persistence**: Support for custom `REM` lines, including `TOTAL DURATION` and `GNUCDID` for tracking source metadata across sessions.
 - **Improved Browser**: Customized internal search browser for GnuDB with navigation controls (Back/Forward) and right-click support.
+- **CUE Viewer**: Inspect your raw CUE sheet with built-in syntax highlighting in a separate window.
 - **Dark Mode**: A sleek, dark interface designed for focus.
 
 ## Getting Started
@@ -90,8 +91,17 @@ CUEsto supports importing timing and label data from **Audacity Labels** files.
   - Click the **trash icon** to remove a specific track.
   - Click **"Clear"** to reset the entire cue sheet. A confirmation modal will appear to prevent accidental data loss.
 
-### Saving
-When you are happy with your changes, click the **"Save"** button at the bottom right. A confirmation message will appear confirming that your file has been saved.
+### Viewing the Raw CUE Sheet
+If you want to inspect or verify the raw CUE sheet text before saving:
+1. Click the **"view cue"** button at the bottom of the editor.
+2. A new read-only window will open displaying the formatted CUE content.
+3. **Syntax Highlighting**: The viewer uses specific colors to help you identify CUE commands:
+   - **Green**: Metadata comments (`REM` lines).
+   - **Red**: Track definitions (`TRACK`).
+   - **Magenta**: Timing indices (`INDEX`).
+   - **Cyan**: Artist information (`PERFORMER`).
+   - **Yellow**: Track and Album titles (`TITLE`).
+   - **Blue**: File references (`FILE`).
 
 ## Tips
 - **Time Format**: Times are displayed in `MM:SS:FF` (Frames). CUE sheets use 75 frames per second.

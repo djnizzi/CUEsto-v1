@@ -1,5 +1,6 @@
 import { CueEditor } from './components/CueEditor';
 import { BrowserShell } from './components/BrowserShell';
+import { CueViewer } from './components/CueViewer';
 
 function App() {
   const params = new URLSearchParams(window.location.search);
@@ -7,6 +8,10 @@ function App() {
 
   if (mode === 'browser') {
     return <BrowserShell />;
+  }
+
+  if (mode === 'viewer') {
+    return <CueViewer />;
   }
 
   return (

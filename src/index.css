@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -9,6 +10,14 @@
   --color-brand-muted: #E8D7C9;
   /* Define placeholder here for potential utility usage, but we rely on root var below */
   --color-brand-placeholder: #787169;
+
+  /* Viewer Syntax Colors */
+  --color-syntax-file: #007fff;
+  --color-syntax-index: #f700ff;
+  --color-syntax-performer: #00ffe1;
+  --color-syntax-rem: #00ff00;
+  --color-syntax-title: #fff000;
+  --color-syntax-track: #ff2500;
 }
 
 /* Use a custom name to avoid conflicts with locally installed fonts */
@@ -45,6 +54,10 @@
 
 body {
   font-family: 'MontserratApp', 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+button {
+  cursor: pointer;
 }
 
 /* Explicit placeholder styling */
