@@ -79,7 +79,21 @@ export const BrowserShell: React.FC = () => {
 
                 {/* Logo and App Title */}
                 <div className="flex items-center gap-2 drag">
-                    <img src="images/logo.png" alt="Logo" className="h-6 w-auto" />
+                    {(() => {
+                        if (url.includes('musicbrainz.org')) {
+                            return <img src="images/musicbrainz.svg" alt="MusicBrainz" className="w-[116px] h-[18px]" />;
+                        }
+                        if (url.includes('gnudb.org')) {
+                            return <img src="images/gnudb.svg" alt="GnuDB" className="w-[100px] h-[31px]" />;
+                        }
+                        if (url.includes('discogs.com')) {
+                            return <img src="images/discogs.svg" alt="Discogs" className="w-[67px] h-[25px]" />;
+                        }
+                        if (url.includes('1001tracklists.com')) {
+                            return <img src="images/tracklists.svg" alt="1001Tracklists" className="w-[116px] h-[13px]" />;
+                        }
+                        return <img src="images/logo.png" alt="Logo" className="h-6 w-auto" />;
+                    })()}
                 </div>
             </div>
 

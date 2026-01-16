@@ -64,7 +64,26 @@ export const CueEditor: React.FC = () => {
         };
         setAppTitle();
 
-        // Listen for file-opened event from main process (File Association)
+        // Check for pending startup file (Main process 'pull' model)
+        const checkPendingFile = async () => {
+            if ((window as any).ipcRenderer) {
+                try {
+                    const data = await (window as any).ipcRenderer.invoke('app:check-pending-file');
+                    if (data && data.content) {
+                        const parsed = parseCue(data.content);
+                        setCue(parsed);
+                        if (data.filepath) {
+                            setCurrentFilePath(data.filepath);
+                        }
+                    }
+                } catch (e) {
+                    console.error('Failed to check pending file', e);
+                }
+            }
+        };
+        checkPendingFile();
+
+        // Listen for file-opened event from main process (File Association - Runtime)
         if ((window as any).ipcRenderer) {
             (window as any).ipcRenderer.on('file-opened', (_: any, data: { content: string, filePath: string }) => {
                 if (data && data.content) {
@@ -523,23 +542,43 @@ export const CueEditor: React.FC = () => {
                     ))}
                 </div>
 
-                <div className="flex justify-end gap-4 mt-8">
-                    <button onClick={handleAddRow} className="bg-brand-orange text-brand-darker font-medium rounded-full px-4 py-2 hover:shadow-[0_0_8px_var(--color-brand-orange)] transition text-sm">
-                        add row
+                <div className="flex justify-end gap-[24px] mt-8">
+                    <button
+                        onClick={handleAddRow}
+                        className="text-brand-orange hover:drop-shadow-[0_0_8px_var(--color-brand-orange)] transition-all"
+                        title="add row"
+                    >
+                        <img src="icons/add.svg" alt="add row" className="w-[24px] h-[24px]" />
                     </button>
-                    <button onClick={handleViewCue} className="bg-brand-orange text-brand-darker font-medium rounded-full px-4 py-2 hover:shadow-[0_0_8px_var(--color-brand-orange)] transition text-sm">
-                        view cue
+                    <button
+                        onClick={handleViewCue}
+                        className="text-brand-orange hover:drop-shadow-[0_0_8px_var(--color-brand-orange)] transition-all"
+                        title="view cue"
+                    >
+                        <img src="icons/code.svg" alt="view cue" className="w-[24px] h-[24px]" />
                     </button>
-                    <button onClick={handleClear} className="bg-brand-orange text-brand-darker font-medium rounded-full px-4 py-2 hover:shadow-[0_0_8px_var(--color-brand-orange)] transition text-sm">
-                        clear
+                    <button
+                        onClick={handleClear}
+                        className="text-brand-orange hover:drop-shadow-[0_0_8px_var(--color-brand-orange)] transition-all"
+                        title="clear"
+                    >
+                        <img src="icons/clean.svg" alt="clear" className="w-[24px] h-[24px]" />
                     </button>
                     {currentFilePath && (
-                        <button onClick={handleSave} className="bg-brand-orange text-brand-darker font-medium rounded-full px-4 py-2 hover:shadow-[0_0_8px_var(--color-brand-orange)] transition text-sm">
-                            save
+                        <button
+                            onClick={handleSave}
+                            className="text-brand-orange hover:drop-shadow-[0_0_8px_var(--color-brand-orange)] transition-all"
+                            title="save"
+                        >
+                            <img src="icons/save.svg" alt="save" className="w-[24px] h-[24px]" />
                         </button>
                     )}
-                    <button onClick={handleSaveAs} className="bg-brand-orange text-brand-darker font-medium rounded-full px-4 py-2 hover:shadow-[0_0_8px_var(--color-brand-orange)] transition text-sm">
-                        save as
+                    <button
+                        onClick={handleSaveAs}
+                        className="text-brand-orange hover:drop-shadow-[0_0_8px_var(--color-brand-orange)] transition-all"
+                        title="save as"
+                    >
+                        <img src="icons/saveas.svg" alt="save as" className="w-[24px] h-[24px]" />
                     </button>
                 </div>
             </div>

@@ -33,7 +33,7 @@ CUEsto is a modern, Electron-based desktop application for editing CUE sheets. I
 - **`DiscogsModal.tsx`**: A dedicated modal for Discogs integration. It supports selective overwrite and features an advanced **Interpolation** mode for track timings.
 - **`ConfirmModal.tsx`**: A reusable, styled confirmation modal for sensitive actions like clearing the editor.
 - **`TrackRow.tsx`**: Represents a single track in the cue sheet. Contains inputs for title, performer, start time, and duration.
-- **`MetadataHeader.tsx`**: Displays and edits global CUE properties. Includes the audio file selector (disc icon) and total duration display.
+- **`MetadataHeader.tsx`**: Displays and edits global CUE properties. Includes the audio file icon and total duration display.
 - **`TimeInput.tsx`**: A specialized input component for handling timestamp formats (MM:SS:FF). Supports a read-only mode for calculated fields.
 
 ### Utilities

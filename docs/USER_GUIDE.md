@@ -17,7 +17,7 @@ CUEsto is a dedicated tool for creating and editing CUE sheets with ease. Whethe
 
 ### Opening a CUE Sheet
 1. Launch CUEsto.
-2. Click the **"Open File"** button in the header to select an existing `.cue` file.
+2. Click the **"Open File"** icon in the header to select an existing `.cue` file.
 3. The editor will populate with the tracks and metadata from your file.
 
 ### Linking an Audio File
@@ -34,16 +34,16 @@ Linking an audio file to your CUE sheet allows CUEsto to provide more accurate i
 CUEsto allows you to import tracklist data directly from a saved **1001tracklists.com** page.
 1. Visit a tracklist page on [1001tracklists.com](https://www.1001tracklists.com/).
 2. Save the page as an HTML file (`Right Click` -> `Save As...` -> `Webpage, HTML Only`).
-3. In CUEsto, click **"import from 1001tracklists"**.
+3. In CUEsto, click the **1001tracklists** logo.
 4. Select the saved HTML file.
 5. The grid will automatically populate with metadata and tracks.
 
 ### Importing from GnuDB
 You can quickly retrieve high-quality metadata from the **GnuDB** database using a CD ID.
-1. In CUEsto, click **"import from gnudb"**.
+1. In CUEsto, click the **GnuDB** logo.
 2. A modal window will appear.
 3. **Redirection Information**: The modal includes a link to GnuDB's search page to help you find the correct CD ID. Clicking this link opens a **Custom Internal Browser** with:
-   - **Navigation Controls**: Use the Back and Forward buttons to browse GnuDB just like a standard browser.
+   - **Navigation Controls**: Use the Back and Forward icons to browse GnuDB just like a standard browser.
    - **Right-Click Actions**: Right-click any link to quickly **Copy Link** or **Open in New Window**.
 4. **Selective Overwrite**: Before fetching, you can use the checkboxes to choose exactly which fields to update:
    - **Header**: Artist, Album Title, Year, Genre.
@@ -51,13 +51,13 @@ You can quickly retrieve high-quality metadata from the **GnuDB** database using
    - **Track Performers**: Updates performers for all tracks.
    - **Start Times/Durations**: Updates indices/timings.
 5. **Auto-Fallback**: If a field in your CUE sheet is currently empty, GnuDB will always populate it regardless of your checkbox selections. Your choices only determine whether to *overwrite* existing non-empty values.
-6. Enter the **GnuDB CD ID** (e.g., `860a8c86`) and click **"get metadata"**.
+6. Enter the **GnuDB CD ID** (e.g., `860a8c86`) and click the **get metadata** icon.
 7. CUEsto will fetch the requested metadata directly into the editor.
 8. **Persistence**: When you import from GnuDB, CUEsto automatically saves the CD ID as a `REM GNUCDID` line in your CUE file. This allows the application to remember where the metadata came from if you reopen the file later.
 
 ### Importing from Discogs
 CUEsto provides a powerful integration with **Discogs**, the premier music database. 
-1. In CUEsto, click **"import from discogs"**.
+1. In CUEsto, click the **Discogs** logo.
 2. **Release Code**: Enter the numeric release ID (e.g., `153184`). CUEsto also accepts common formats like `r153184` or `[r153184]`.
 3. **Disc # (Optional)**: For multi-disc releases, you can specify which disc to import (e.g., `1` or `2`). If left empty, the first disc's tracks are usually imported.
 4. **Selective Overwrite**: Choose exactly what you want to import:
@@ -72,7 +72,7 @@ CUEsto provides a powerful integration with **Discogs**, the premier music datab
 CUEsto supports importing timing and label data from **Audacity Labels** files.
 1. In Audacity, ensure your labels are set up (`Tracks` -> `Add New` -> `Label Track`).
 2. Export your labels (`File` -> `Export` -> `Export Labels...`) as a `.txt` file.
-3. In CUEsto, click **"import audacity labels"**.
+3. In CUEsto, click the **Audacity** logo.
 4. Select the exported `.txt` file.
 5. **Conditional Update**:
    - **Start Times**: All track timings are unconditionally updated from the Audacity file.
@@ -87,13 +87,13 @@ CUEsto supports importing timing and label data from **Audacity Labels** files.
   - If a `REM TOTAL DURATION` line is present in the CUE file, CUEsto will use it to display the total length and final track duration even without the audio file.
   - **Smart Visibility**: If neither an audio file nor a duration tag is available, the duration field for the final track is hidden to prevent confusion.
 - **Add/Remove/Clear**: 
-  - Click **"Add Row"** to add a new track.
+  - Click the **add row** icon to add a new track.
   - Click the **trash icon** to remove a specific track.
-  - Click **"Clear"** to reset the entire cue sheet. A confirmation modal will appear to prevent accidental data loss.
+  - Click the **clear** icon to reset the entire cue sheet. A confirmation modal will appear to prevent accidental data loss.
 
 ### Viewing the Raw CUE Sheet
 If you want to inspect or verify the raw CUE sheet text before saving:
-1. Click the **"view cue"** button at the bottom of the editor.
+1. Click the **"view cue"** icon at the bottom of the editor.
 2. A new read-only window will open displaying the formatted CUE content.
 3. **Syntax Highlighting**: The viewer uses specific colors to help you identify CUE commands:
    - **Green**: Metadata comments (`REM` lines).

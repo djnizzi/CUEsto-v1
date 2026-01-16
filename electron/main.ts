@@ -4,6 +4,7 @@ import path from 'node:path'
 import fs from 'node:fs/promises'
 import * as mm from 'music-metadata'
 import { MusicBrainzApi } from 'musicbrainz-api'
+import { DISCOGS_TOKEN, APP_NAME } from './credentials'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -13,30 +14,6 @@ const mbApi = new MusicBrainzApi({
   appContactInfo: 'https://github.com/NiZDesign/cuesto'
 });
 
-async function getSecrets() {
-  const rootPath = path.join(process.env.APP_ROOT || path.join(__dirname, '..'), '..');
-  const v1Path = path.join(rootPath, 'v1');
-  const credsPath = path.join(v1Path, 'electron', 'credentials.ts');
-
-  console.log(`Checking Discogs credentials at: ${credsPath}`);
-
-  try {
-    const credsContent = await fs.readFile(credsPath, 'utf-8');
-    const tokenMatch = credsContent.match(/DISCOGS_TOKEN\s*=\s*(['"`])(.*?)\1/);
-    if (tokenMatch && tokenMatch[2]) {
-      const token = tokenMatch[2];
-      console.log(`[AUTH] Found token in credentials.ts: "${token}"`);
-      return { API: { key: token }, APP: { appname: 'CUEsto' } };
-    } else {
-      console.warn('[AUTH] credentials.ts found but DISCOGS_TOKEN match failed.');
-      console.log('[AUTH] File content snippet:', credsContent.substring(0, 100).replace(/\r?\n/g, ' '));
-    }
-  } catch (e: any) {
-    console.error(`[AUTH] Error reading credentials.ts: ${e.message}`);
-  }
-
-  return null;
-}
 
 // Handlers
 ipcMain.handle('dialog:openFile', async () => {
@@ -93,15 +70,22 @@ ipcMain.handle('dialog:openAudioFile', async () => {
       const durationSeconds = metadata.format.duration || 0
       // Convert to frames (75 fps)
       const totalFrames = Math.floor(durationSeconds * 75)
+
+      const common = metadata.common;
+      const albumArtist = (common.albumartist || '').trim();
+      const trackArtist = (common.artist || '').trim();
+      // Prioritize Album Artist, fallback to Artist
+      const finalArtist = albumArtist || trackArtist;
+
       return {
         filename: path.basename(filePath),
         filepath: filePath,
         durationFrames: totalFrames,
         metadata: {
-          title: metadata.common.title || '',
-          artist: metadata.common.albumartist || metadata.common.artist || '',
-          year: metadata.common.year?.toString() || '',
-          genre: metadata.common.genre?.[0] || ''
+          title: common.title || '',
+          artist: finalArtist,
+          year: common.year?.toString() || '',
+          genre: common.genre?.[0] || ''
         }
       }
     } catch (error) {
@@ -199,13 +183,12 @@ ipcMain.handle('gnudb:fetchMetadata', async (_, gnucdid: string) => {
 });
 
 ipcMain.handle('discogs:fetchMetadata', async (_, releaseCode: string) => {
-  const secrets = await getSecrets();
-  if (!secrets || !secrets.API?.key) {
-    return { error: 'Discogs API token not found. Please add it to electron/credentials.ts.' };
+  if (!DISCOGS_TOKEN) {
+    return { error: 'Discogs API token not found. Please check electron/credentials.ts.' };
   }
 
-  const apiKey = secrets.API.key;
-  const userAgent = `${secrets.APP?.appname || 'CUEsto'}/1.0.6`;
+  const apiKey = DISCOGS_TOKEN;
+  const userAgent = `${APP_NAME || 'CUEsto'}/1.0.6`;
 
   // Accept r12345, [r12345], 12345 etc.
   const releaseId = releaseCode.replace(/\D/g, '');
@@ -602,6 +585,24 @@ async function handleFileOpen(filePath: string) {
   }
 }
 
+// Store startup file for renderer to pull
+let pendingStartupFile: string | null = null;
+
+ipcMain.handle('app:check-pending-file', async () => {
+  if (pendingStartupFile) {
+    try {
+      const content = await fs.readFile(pendingStartupFile, 'utf-8');
+      const filepath = pendingStartupFile;
+      pendingStartupFile = null; // Clear it
+      return { content, filepath };
+    } catch (e) {
+      console.error('Failed to read pending startup file', e);
+      return null;
+    }
+  }
+  return null;
+});
+
 function createWindow() {
   win = new BrowserWindow({
     width: 900,
@@ -619,13 +620,22 @@ function createWindow() {
     return { action: 'deny' };
   });
 
+  win.on('closed', () => {
+    console.log('Main window closed, quitting app...');
+    app.quit();
+  });
+
   win.webContents.on('did-finish-load', async () => {
     win?.webContents.send('main-process-message', (new Date).toLocaleString());
 
     // Check for startup file (Windows File Association)
     const filePath = process.argv.find(arg => arg.endsWith('.cue') || arg.endsWith('.txt'))
     if (filePath) {
-      handleFileOpen(filePath)
+      // Instead of opening immediately (which might race), store it.
+      pendingStartupFile = filePath;
+      // Also trying to send it just in case renderer is somehow ready? 
+      // Actually, let's rely on the pull model.
+      console.log('Startup file found:', filePath);
     }
   })
 

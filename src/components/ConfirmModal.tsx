@@ -38,19 +38,24 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({ isOpen, title, messa
                 </p>
 
                 {/* Footer with Buttons */}
-                <div className="flex justify-end gap-3 mt-4">
+                <div className="flex justify-end gap-5 mt-4">
+
                     <button
                         onClick={onCancel}
-                        className="bg-transparent border border-white/20 text-brand-text font-medium rounded-full px-6 py-2 hover:bg-white/5 transition text-sm whitespace-nowrap"
+                        className="text-brand-orange hover:drop-shadow-[0_0_8px_var(--color-brand-orange)] transition-all"
+                        title="cancel"
                     >
-                        cancel
+                        <img src="icons/cancel.svg" alt="cancel" className="w-[24px] h-[24px]" />
                     </button>
                     <button
                         onClick={onConfirm}
-                        className="bg-brand-orange text-brand-darker font-medium rounded-full px-6 py-2 hover:shadow-[0_0_8px_var(--color-brand-orange)] transition text-sm whitespace-nowrap"
+                        className="text-brand-orange hover:drop-shadow-[0_0_8px_var(--color-brand-orange)] transition-all"
+                        title="clear all"
                     >
-                        clear all
+                        <img src="icons/ok.svg" alt="clear all" className="w-[24px] h-[24px]" />
                     </button>
+
+
                 </div>
             </div>
             {/* Click outside to close */}
