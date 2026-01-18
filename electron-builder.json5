@@ -3,6 +3,9 @@
   "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
   "appId": "com.cuesto.app",
   "asar": true,
+  "asarUnpack": [
+    "**/node_modules/ffmpeg-static/**/*"
+  ],
   "productName": "CUEsto",
   "directories": {
     "output": "release/${version}"

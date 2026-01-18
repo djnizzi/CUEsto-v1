@@ -15,9 +15,9 @@ export default defineConfig({
         vite: {
           build: {
             rollupOptions: {
-              external: ['musicbrainz-api'],
+              external: ['musicbrainz-api', 'ffmpeg-static'],
               output: {
-                format: 'cjs'
+                format: 'es'
               }
             }
           }

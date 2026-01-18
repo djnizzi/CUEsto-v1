@@ -9,6 +9,7 @@ CUEsto is a modern, Electron-based desktop application for editing CUE sheets. I
 - **Build Tool**: [Vite](https://vitejs.dev/)
 - **Language**: [TypeScript](https://www.typescriptlang.org/)
 - **Styling**: [TailwindCSS](https://tailwindcss.com/)
+- **Audio Processing**: [FFmpeg](https://ffmpeg.org/) (bundled via `ffmpeg-static`)
 - **Linting**: ESLint
 
 ### IPC Handlers
@@ -24,6 +25,9 @@ CUEsto is a modern, Electron-based desktop application for editing CUE sheets. I
 - **`browser:get-status`**: Returns the current status (canGoBack, canGoForward, title, url) of the active `WebContentsView`.
 - **`browser:go-back` / `browser:go-forward`**: Triggers navigation in the target browser view.
 - **`browser:status-updated` (Event)**: Pushed from main to renderer whenever navigation or title changes occur in the embedded view.
+- **`audio:split`**: Initiates the FFmpeg splitting process.
+- **`audio:split-progress` / `-complete` / `-error` (Events)**: Progress updates and status for the audio splitting operation.
+- **`shell:open-folder`**: Opens an absolute path in the system's file explorer.
 
 ### Key Components
 - **`CueEditor.tsx`**: The main container component that manages the state of the CUE sheet (`CueSheet` object). It implements the selective overwrite logic for GnuDB and Discogs imports and handles the display of calculated durations.
@@ -32,6 +36,8 @@ CUEsto is a modern, Electron-based desktop application for editing CUE sheets. I
 - **`GnuDbModal.tsx`**: A dedicated modal for GnuDB integration. It manages internal state for selective overwrite options and handles link redirection to the custom browser.
 - **`DiscogsModal.tsx`**: A dedicated modal for Discogs integration. It supports selective overwrite and features an advanced **Interpolation** mode for track timings.
 - **`ConfirmModal.tsx`**: A reusable, styled confirmation modal for sensitive actions like clearing the editor.
+- **`AlertModal.tsx`**: A generic modal for displaying errors or warnings.
+- **`SplitProgressModal.tsx`**: Displays the real-time progress of the FFmpeg splitting operation.
 - **`TrackRow.tsx`**: Represents a single track in the cue sheet. Contains inputs for title, performer, start time, and duration.
 - **`MetadataHeader.tsx`**: Displays and edits global CUE properties. Includes the audio file icon and total duration display.
 - **`TimeInput.tsx`**: A specialized input component for handling timestamp formats (MM:SS:FF). Supports a read-only mode for calculated fields.
@@ -42,7 +48,8 @@ CUEsto is a modern, Electron-based desktop application for editing CUE sheets. I
 - **`gnudb.ts`**: Facilitates interaction with the `gnudb:fetchMetadata` IPC handler and defines types for `OverwriteOptions`.
 - **`discogs.ts`**: Implements track duration interpolation and bridges the gap between raw Discogs API responses and CUE-compatible track structures.
 - **`timeUtils.ts`**: Helper functions for frame/time conversions (75 frames per second). Now includes `parseAudacityLabels` for extracting start times and labels from Audacity export files.
-- **Audio Metadata**: Uses `music-metadata` in the main process (via `dialog:openAudioFile` IPC) to extract duration and tags (Artist, Title, Year, Genre).
+- **Audio Engine**: Uses `ffmpeg-static` in the main process to handle audio splitting. The binary is unpacked from the ASAR during production builds to ensure compatibility.
+- **Audio Metadata**: Uses `music-metadata` in the main process (via `dialog:openAudioFile` IPC) to extract duration and tags (Artist, Title, Year, Genre). Now includes multi-artist support.
 
 ### State Management
 State is largely local to `CueEditor.tsx`, with the `CueSheet` object serving as the single source of truth for the currently open file. Changes flow down to child components via props, and updates bubble up via callbacks.

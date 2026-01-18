@@ -86,9 +86,9 @@ export const TrackRow: React.FC<TrackRowProps> = ({
             <button
                 onClick={() => onDelete(index)}
                 className="w-8 flex justify-center text-brand-orange hover:drop-shadow-[0_0_8px_var(--color-brand-orange)] transition-all"
-                title="delete track"
+                data-tooltip="delete track"
             >
-                <img src="icons/trash.svg" alt="delete" className="w-[24px] h-[24px]" />
+                <img src="icons/trash.svg" alt="delete" className="w-6 h-6" />
             </button>
         </div>
     );

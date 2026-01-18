@@ -11,6 +11,8 @@ import { GnuDbResult, OverwriteOptions } from '../lib/gnudb';
 import { DiscogsModal } from './DiscogsModal';
 import { DiscogsOptions, DiscogsResult, interpolateTimings, discogsTracksToCueTracks } from '../lib/discogs';
 import { ConfirmModal } from './ConfirmModal';
+import { SplitProgressModal } from './SplitProgressModal';
+import { AlertModal } from './AlertModal';
 
 type MusicBrainzOptions = DiscogsOptions;
 
@@ -31,11 +33,28 @@ export const CueEditor: React.FC = () => {
     const [cue, setCue] = useState<CueSheet>(INITIAL_CUE);
     const [showToast, setShowToast] = useState(false);
     const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
+    const [isSplitting, setIsSplitting] = useState(false);
+    const [isSplitModalOpen, setIsSplitModalOpen] = useState(false);
+
+    // Modal States
+    const [alertModal, setAlertModal] = useState<{ isOpen: boolean, title: string, message: string }>({
+        isOpen: false,
+        title: '',
+        message: ''
+    });
+    const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean, title: string, message: string, onConfirm: () => void }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => { }
+    });
     const [isGnuDbModalOpen, setIsGnuDbModalOpen] = useState(false);
     const [isDiscogsModalOpen, setIsDiscogsModalOpen] = useState(false);
     const [isMusicBrainzModalOpen, setIsMusicBrainzModalOpen] = useState(false);
-    const [isConfirmClearOpen, setIsConfirmClearOpen] = useState(false);
     const [appVersion, setAppVersion] = useState('1.0.7');
+    const [fullAudioPath, setFullAudioPath] = useState<string | null>(null);
+    const [hasAttemptedSplit, setHasAttemptedSplit] = useState(false);
+    const [splitProgress, setSplitProgress] = useState<{ progress: number, currentTrack: number, totalTracks: number, fileName: string } | null>(null);
 
     const showSaveToast = () => {
         setShowToast(true);
@@ -47,6 +66,14 @@ export const CueEditor: React.FC = () => {
             ...prev,
             [field === 'fileName' ? 'file' : field]: value
         }));
+    };
+
+    const showAlert = (title: string, message: string) => {
+        setAlertModal({ isOpen: true, title, message });
+    };
+
+    const showConfirm = (title: string, message: string, onConfirm: () => void) => {
+        setConfirmModal({ isOpen: true, title, message, onConfirm });
     };
 
     React.useEffect(() => {
@@ -75,6 +102,10 @@ export const CueEditor: React.FC = () => {
                         if (data.filepath) {
                             setCurrentFilePath(data.filepath);
                         }
+                        if (data.audioPath) {
+                            setFullAudioPath(data.audioPath);
+                            setHasAttemptedSplit(false);
+                        }
                     }
                 } catch (e) {
                     console.error('Failed to check pending file', e);
@@ -85,14 +116,38 @@ export const CueEditor: React.FC = () => {
 
         // Listen for file-opened event from main process (File Association - Runtime)
         if ((window as any).ipcRenderer) {
-            (window as any).ipcRenderer.on('file-opened', (_: any, data: { content: string, filePath: string }) => {
+            (window as any).ipcRenderer.on('file-opened', (_: any, data: { content: string, filePath: string, audioPath?: string }) => {
                 if (data && data.content) {
                     const parsed = parseCue(data.content);
                     setCue(parsed);
                     if (data.filePath) {
                         setCurrentFilePath(data.filePath);
                     }
+                    if (data.audioPath) {
+                        setFullAudioPath(data.audioPath);
+                        setHasAttemptedSplit(false);
+                    }
                 }
+            });
+        }
+
+        // Listen for splitting events
+        if ((window as any).ipcRenderer) {
+            (window as any).ipcRenderer.on('audio:split-progress', (_: any, data: any) => {
+                setSplitProgress(data);
+                setIsSplitModalOpen(true);
+            });
+            (window as any).ipcRenderer.on('audio:split-complete', () => {
+                setIsSplitting(false);
+                // We keep splitProgress so the modal shows 100% and totalTracks
+                setSplitProgress(prev => prev ? { ...prev, progress: 100 } : null);
+                // The modal will remain open showing completion, user closes it.
+            });
+            (window as any).ipcRenderer.on('audio:split-error', (_: any, error: string) => {
+                setIsSplitting(false);
+                setIsSplitModalOpen(false); // Close the progress modal on error
+                setSplitProgress(null);
+                showAlert('Splitting Error', error);
             });
         }
 
@@ -100,6 +155,9 @@ export const CueEditor: React.FC = () => {
         return () => {
             if ((window as any).ipcRenderer) {
                 (window as any).ipcRenderer.removeAllListeners('file-opened');
+                (window as any).ipcRenderer.removeAllListeners('audio:split-progress');
+                (window as any).ipcRenderer.removeAllListeners('audio:split-complete');
+                (window as any).ipcRenderer.removeAllListeners('audio:split-error');
             }
         };
     }, []);
@@ -166,10 +224,14 @@ export const CueEditor: React.FC = () => {
     };
 
     const handleDeleteTrack = (index: number) => {
-        setCue(prev => ({
-            ...prev,
-            tracks: prev.tracks.filter((_, i) => i !== index)
-        }));
+        showConfirm('Delete Track', `Are you sure you want to delete track ${cue.tracks[index].number}?`, () => {
+            const newTracks = [...cue.tracks];
+            newTracks.splice(index, 1);
+            // Re-number
+            newTracks.forEach((t, i) => t.number = i + 1);
+            setCue(prev => ({ ...prev, tracks: newTracks }));
+            setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        });
     };
 
     const handleAddRow = () => {
@@ -192,13 +254,15 @@ export const CueEditor: React.FC = () => {
     };
 
     const handleClear = () => {
-        setIsConfirmClearOpen(true);
+        showConfirm('Clear All', 'Are you sure you want to clear all data? This will reset the entire cue sheet and tracklist. Any unsaved changes will be lost.', confirmClear);
     };
 
     const confirmClear = () => {
         setCue(INITIAL_CUE);
         setCurrentFilePath(null);
-        setIsConfirmClearOpen(false);
+        setFullAudioPath(null);
+        setHasAttemptedSplit(false);
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
     };
 
     const handleOpenFile = async () => {
@@ -206,13 +270,18 @@ export const CueEditor: React.FC = () => {
             if (!(window as any).ipcRenderer) return;
             const result = await (window as any).ipcRenderer.invoke('dialog:openFile');
             if (result) {
-                const { content, filepath } = result;
+                setHasAttemptedSplit(false);
+                const { content, filepath, audioPath } = result;
                 const parsed = parseCue(content);
                 setCue(parsed);
                 setCurrentFilePath(filepath);
+                if (audioPath) {
+                    setFullAudioPath(audioPath);
+                }
             }
         } catch (e) {
             console.error(e);
+            showAlert('Error Opening File', `Failed to open file: ${(e as any).message || e}`);
         }
     };
 
@@ -221,7 +290,12 @@ export const CueEditor: React.FC = () => {
             if (!(window as any).ipcRenderer) return;
             const result = await (window as any).ipcRenderer.invoke('dialog:openAudioFile');
             if (result) {
-                const { filename, durationFrames, metadata } = result;
+                const { filename, filepath, durationFrames, metadata, error } = result;
+                if (error) {
+                    showAlert('Error', error);
+                }
+                setFullAudioPath(filepath);
+                setHasAttemptedSplit(false);
                 setCue(prev => ({
                     ...prev,
                     file: filename,
@@ -234,6 +308,7 @@ export const CueEditor: React.FC = () => {
             }
         } catch (e) {
             console.error('Failed to select audio file', e);
+            showAlert('Error Selecting Audio', `Failed to select audio file: ${(e as any).message || e}`);
         }
     };
 
@@ -261,6 +336,7 @@ export const CueEditor: React.FC = () => {
                 }
             } catch (e) {
                 console.error('Import failed', e);
+                showAlert('Import Failed', `Failed to import from 1001tracklists: ${(e as any).message || e}`);
             }
         } else if (source === 'gnudb') {
             setIsGnuDbModalOpen(true);
@@ -288,11 +364,13 @@ export const CueEditor: React.FC = () => {
                 }
             } catch (e) {
                 console.error('Audacity import failed', e);
+                showAlert('Audacity Import Failed', `Failed to import Audacity labels: ${(e as any).message || e}`);
             }
         } else if (source === 'musicbrainz') {
             setIsMusicBrainzModalOpen(true);
         } else {
             console.log('Import source not implemented:', source);
+            showAlert('Import Not Implemented', `Import from '${source}' is not yet implemented.`);
         }
     };
 
@@ -443,6 +521,7 @@ export const CueEditor: React.FC = () => {
             }
         } catch (e) {
             console.error(e);
+            showAlert('Save Error', `Failed to save file: ${(e as any).message || e}`);
         }
     };
 
@@ -466,6 +545,7 @@ export const CueEditor: React.FC = () => {
             }
         } catch (e) {
             console.error(e);
+            showAlert('Save As Error', `Failed to save file: ${(e as any).message || e}`);
         }
     };
 
@@ -475,7 +555,36 @@ export const CueEditor: React.FC = () => {
         (window as any).ipcRenderer.invoke('window:open-viewer', data);
     };
 
-    // Rendering Helper: Calculate durations for display
+    const handleOpenFolder = async () => {
+        if (!(window as any).ipcRenderer || !fullAudioPath) return;
+        try {
+            await (window as any).ipcRenderer.invoke('shell:open-folder', fullAudioPath);
+        } catch (e) {
+            console.error('Failed to open folder', e);
+            showAlert('Error', `Could not open folder: ${(e as any).message || e}`);
+        }
+    };
+
+    const handleSplitAudio = () => {
+        setHasAttemptedSplit(true);
+        if (!fullAudioPath) {
+            showAlert('Missing Audio', 'Please select an audio file first using the icon in the file name field.');
+            return;
+        }
+        if (cue.tracks.length === 0) {
+            showAlert('No Tracks', 'The CUE sheet has no tracks to split.');
+            return;
+        }
+        // Check if last track has duration or if we have total duration
+        if (!cue.totalDuration || cue.totalDuration <= 0) {
+            showAlert('Missing Duration', 'Total audio duration is unknown. The last track might not split correctly.');
+        }
+
+        setIsSplitting(true);
+        setIsSplitModalOpen(true);
+        setSplitProgress({ progress: 0, currentTrack: 0, totalTracks: cue.tracks.length, fileName: '' });
+        (window as any).ipcRenderer.send('audio:split', cue, fullAudioPath);
+    };
 
     // Rendering Helper: Calculate durations for display
     const getRenderDuration = (index: number) => {
@@ -512,6 +621,8 @@ export const CueEditor: React.FC = () => {
                 onImport={handleImport}
                 onOpenFile={handleOpenFile}
                 onSelectAudioFile={handleSelectAudioFile}
+                isAudioResolved={!!fullAudioPath}
+                showAudioError={hasAttemptedSplit && !fullAudioPath}
             />
 
             <div className="max-w-5xl mx-auto px-6 mt-1 pb-10">
@@ -542,50 +653,59 @@ export const CueEditor: React.FC = () => {
                     ))}
                 </div>
 
-                <div className="flex justify-end gap-[24px] mt-8">
+                <div className="flex justify-end gap-6 mt-8">
                     <button
                         onClick={handleAddRow}
                         className="text-brand-orange hover:drop-shadow-[0_0_8px_var(--color-brand-orange)] transition-all"
-                        title="add row"
+                        data-tooltip="add row"
                     >
-                        <img src="icons/add.svg" alt="add row" className="w-[24px] h-[24px]" />
+                        <img src="icons/add.svg" alt="add row" className="size-6" />
                     </button>
                     <button
                         onClick={handleViewCue}
                         className="text-brand-orange hover:drop-shadow-[0_0_8px_var(--color-brand-orange)] transition-all"
-                        title="view cue"
+                        data-tooltip="view cue"
                     >
-                        <img src="icons/code.svg" alt="view cue" className="w-[24px] h-[24px]" />
+                        <img src="icons/code.svg" alt="view cue" className="size-6" />
                     </button>
                     <button
                         onClick={handleClear}
                         className="text-brand-orange hover:drop-shadow-[0_0_8px_var(--color-brand-orange)] transition-all"
-                        title="clear"
+                        data-tooltip="clear"
                     >
-                        <img src="icons/clean.svg" alt="clear" className="w-[24px] h-[24px]" />
+                        <img src="icons/clean.svg" alt="clear" className="size-6" />
                     </button>
                     {currentFilePath && (
                         <button
                             onClick={handleSave}
                             className="text-brand-orange hover:drop-shadow-[0_0_8px_var(--color-brand-orange)] transition-all"
-                            title="save"
+                            data-tooltip="save"
                         >
-                            <img src="icons/save.svg" alt="save" className="w-[24px] h-[24px]" />
+                            <img src="icons/save.svg" alt="save" className="size-6" />
                         </button>
                     )}
                     <button
                         onClick={handleSaveAs}
                         className="text-brand-orange hover:drop-shadow-[0_0_8px_var(--color-brand-orange)] transition-all"
-                        title="save as"
+                        data-tooltip="save as"
                     >
-                        <img src="icons/saveas.svg" alt="save as" className="w-[24px] h-[24px]" />
+                        <img src="icons/saveas.svg" alt="save as" className="size-6" />
+                    </button>
+                    <button
+                        onClick={handleSplitAudio}
+                        className="text-brand-orange hover:drop-shadow-[0_0_8px_var(--color-brand-orange)] transition-all"
+                        data-tooltip="split audio"
+                    >
+                        <img src="icons/split.svg" alt="split audio" className="size-6" />
                     </button>
                 </div>
+
+                {/* The SplitProgressModal will handle rendering progress */}
             </div>
 
             {/* Toast Notification */}
             {showToast && (
-                <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-brand-placeholder text-brand-text px-6 py-2 rounded-full shadow-lg font-medium transition-opacity animate-fade-in-up">
+                <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-brand-subheader text-brand-text px-6 py-2 rounded-full shadow-lg font-medium transition-opacity animate-fade-in-up">
                     Saved successfully
                 </div>
             )}
@@ -609,12 +729,30 @@ export const CueEditor: React.FC = () => {
                 onSuccess={handleMusicBrainzSuccess}
             />
 
+            <SplitProgressModal
+                isOpen={isSplitModalOpen}
+                isSplitting={isSplitting}
+                progress={splitProgress?.progress || 0}
+                currentTrack={splitProgress?.currentTrack || 0}
+                totalTracks={splitProgress?.totalTracks || 0}
+                fileName={splitProgress?.fileName || ''}
+                onClose={() => setIsSplitModalOpen(false)}
+                onOpenFolder={handleOpenFolder}
+            />
+
+            <AlertModal
+                isOpen={alertModal.isOpen}
+                title={alertModal.title}
+                message={alertModal.message}
+                onClose={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+            />
+
             <ConfirmModal
-                isOpen={isConfirmClearOpen}
-                title="clear all fields?"
-                message="this will reset the entire cue sheet and tracklist. any unsaved changes will be lost."
-                onConfirm={confirmClear}
-                onCancel={() => setIsConfirmClearOpen(false)}
+                isOpen={confirmModal.isOpen}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                onConfirm={confirmModal.onConfirm}
+                onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
             />
         </div>
     );

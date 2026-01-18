@@ -1,21 +1,36 @@
-import { app, BrowserWindow, ipcMain, dialog, WebContentsView, Menu, MenuItem, clipboard } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, WebContentsView, Menu, MenuItem, clipboard, shell } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import fs from 'node:fs/promises'
+import { spawn } from 'node:child_process'
+import { createRequire } from 'node:module'
 import * as mm from 'music-metadata'
 import { MusicBrainzApi } from 'musicbrainz-api'
 import { DISCOGS_TOKEN, APP_NAME } from './credentials'
+
+const require = createRequire(import.meta.url)
+let ffmpegPath = require('ffmpeg-static')
+
+// Fix for asarUnpack
+if (ffmpegPath && typeof ffmpegPath === 'string') {
+  ffmpegPath = ffmpegPath.replace('app.asar', 'app.asar.unpacked');
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const mbApi = new MusicBrainzApi({
   appName: 'CUEsto',
-  appVersion: '1.0.8', // We'll update this or get from package.json if needed
+  appVersion: '1.0.12',
   appContactInfo: 'https://github.com/NiZDesign/cuesto'
 });
 
 
 // Handlers
+ipcMain.handle('shell:open-folder', async (_, filePath: string) => {
+  const dir = path.dirname(filePath);
+  shell.openPath(dir);
+});
+
 ipcMain.handle('dialog:openFile', async () => {
   const { canceled, filePaths } = await dialog.showOpenDialog({
     properties: ['openFile'],
@@ -24,8 +39,24 @@ ipcMain.handle('dialog:openFile', async () => {
   if (canceled) {
     return null
   } else {
-    const content = await fs.readFile(filePaths[0], 'utf-8')
-    return { content, filepath: filePaths[0] }
+    const cuePath = filePaths[0]
+    const content = await fs.readFile(cuePath, 'utf-8')
+
+    // Try to find the audio file referenced in the cue
+    let audioPath: string | null = null;
+    const fileMatch = content.match(/^\s*FILE\s+"?([^"]*)"?\s+\w+/mi);
+    if (fileMatch) {
+      const audioFileName = fileMatch[1];
+      const potentialPath = path.join(path.dirname(cuePath), audioFileName);
+      try {
+        await fs.access(potentialPath);
+        audioPath = potentialPath;
+      } catch {
+        // Not found or not accessible
+      }
+    }
+
+    return { content, filepath: cuePath, audioPath }
   }
 })
 
@@ -72,8 +103,15 @@ ipcMain.handle('dialog:openAudioFile', async () => {
       const totalFrames = Math.floor(durationSeconds * 75)
 
       const common = metadata.common;
-      const albumArtist = (common.albumartist || '').trim();
-      const trackArtist = (common.artist || '').trim();
+
+      const formatArtists = (artists: string[] | string | undefined) => {
+        if (!artists) return '';
+        if (Array.isArray(artists)) return artists.join('; ');
+        return artists;
+      };
+
+      const albumArtist = formatArtists((common as any).albumartists || common.albumartist).trim();
+      const trackArtist = formatArtists(common.artists || common.artist).trim();
       // Prioritize Album Artist, fallback to Artist
       const finalArtist = albumArtist || trackArtist;
 
@@ -85,7 +123,7 @@ ipcMain.handle('dialog:openAudioFile', async () => {
           title: common.title || '',
           artist: finalArtist,
           year: common.year?.toString() || '',
-          genre: common.genre?.[0] || ''
+          genre: common.genre?.join('; ') || ''
         }
       }
     } catch (error) {
@@ -99,6 +137,88 @@ ipcMain.handle('dialog:openAudioFile', async () => {
     }
   }
 })
+
+ipcMain.on('audio:split', async (event, cueSheet: any, sourceFilePath: string) => {
+  const tracks = cueSheet.tracks;
+  const totalDuration = cueSheet.totalDuration;
+  const outDir = path.dirname(sourceFilePath);
+  const ext = path.extname(sourceFilePath);
+
+  if (!ffmpegPath) {
+    event.sender.send('audio:split-error', 'FFmpeg binary not found.');
+    return;
+  }
+
+  const framesToSeconds = (f: number) => (f / 75).toFixed(3);
+
+  for (let i = 0; i < tracks.length; i++) {
+    const track = tracks[i];
+    const startTime = framesToSeconds(track.index01);
+    let endTime: string | null = null;
+
+    if (i < tracks.length - 1) {
+      endTime = framesToSeconds(tracks[i + 1].index01);
+    } else if (totalDuration) {
+      endTime = framesToSeconds(totalDuration);
+    }
+
+    const trackNum = track.number.toString().padStart(2, '0');
+    const safeTitle = track.title.replace(/[\\/:"*?<>|]/g, '_');
+    const outFileName = `${trackNum} - ${safeTitle}${ext}`;
+    const outPath = path.join(outDir, outFileName);
+
+    const args = [
+      '-y',
+      '-ss', startTime,
+    ];
+
+    if (endTime) {
+      args.push('-to', endTime);
+    }
+
+    args.push('-i', sourceFilePath);
+
+    // Metadata and Streams
+    args.push(
+      '-map', '0',
+      '-map_metadata', '0',
+      '-c', 'copy',
+      '-metadata', `title=${track.title}`,
+      '-metadata', `artist=${track.performer || (track.performer === '' ? cueSheet.performer : track.performer)}`,
+      '-metadata', `album_artist=${cueSheet.performer}`,
+      '-metadata', `album=${cueSheet.title}`,
+      '-metadata', `date=${cueSheet.date || ''}`,
+      '-metadata', `genre=${cueSheet.genre || ''}`,
+      '-metadata', `track=${track.number}`,
+      outPath
+    );
+
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const ffmpeg = spawn(ffmpegPath as string, args);
+        ffmpeg.on('close', (code) => {
+          if (code === 0) resolve();
+          else reject(new Error(`FFmpeg exited with code ${code}`));
+        });
+        ffmpeg.on('error', reject);
+      });
+
+      // Send progress
+      const progress = ((i + 1) / tracks.length) * 100;
+      event.sender.send('audio:split-progress', {
+        progress,
+        currentTrack: i + 1,
+        totalTracks: tracks.length,
+        fileName: outFileName
+      });
+    } catch (err: any) {
+      event.sender.send('audio:split-error', `Error splitting track ${trackNum}: ${err.message}`);
+      return;
+    }
+  }
+
+  event.sender.send('audio:split-complete');
+});
 
 ipcMain.handle('dialog:saveFile', async (_, content: string, pathOrSuggestion?: string) => {
   // If pathOrSuggestion is an absolute path, overwrite.
@@ -593,8 +713,20 @@ ipcMain.handle('app:check-pending-file', async () => {
     try {
       const content = await fs.readFile(pendingStartupFile, 'utf-8');
       const filepath = pendingStartupFile;
+
+      let audioPath: string | null = null;
+      const fileMatch = content.match(/^\s*FILE\s+"?([^"]*)"?\s+\w+/mi);
+      if (fileMatch) {
+        const audioFileName = fileMatch[1];
+        const potentialPath = path.join(path.dirname(filepath), audioFileName);
+        try {
+          await fs.access(potentialPath);
+          audioPath = potentialPath;
+        } catch { }
+      }
+
       pendingStartupFile = null; // Clear it
-      return { content, filepath };
+      return { content, filepath, audioPath };
     } catch (e) {
       console.error('Failed to read pending startup file', e);
       return null;

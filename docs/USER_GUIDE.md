@@ -7,10 +7,11 @@ CUEsto is a dedicated tool for creating and editing CUE sheets with ease. Whethe
 - **Visual Editor**: See your tracks in a clear, table-like layout.
 - **Smart Time Editing**: Automatically recalculates durations when you edit start times.
 - **Metadata Management**: Easily update Album Title, Performer, File references, and more.
-- **Audio Integration**: Automatically extract duration and metadata tags (title, artist, year, genre) from your audio files.
-- **Metadata Persistence**: Support for custom `REM` lines, including `TOTAL DURATION` and `GNUCDID` for tracking source metadata across sessions.
+- **Audio Integration**: Automatically extract duration and metadata tags (title, artist, year, genre) from your audio files. Full support for multiple artists (separated by `; `).
+- **Audio Splitting**: Slice large mix files into individual tracks using the bundled FFmpeg engine.
 - **Improved Browser**: Customized internal search browser for GnuDB with navigation controls (Back/Forward) and right-click support.
 - **CUE Viewer**: Inspect your raw CUE sheet with built-in syntax highlighting in a separate window.
+- **Custom Modals**: A fully branded modal system replaces standard OS dialogs for a cohesive, premium experience.
 - **Dark Mode**: A sleek, dark interface designed for focus.
 
 ## Getting Started
@@ -26,6 +27,7 @@ Linking an audio file to your CUE sheet allows CUEsto to provide more accurate i
 2. Select your audio file (MP3, WAV, FLAC, etc.).
 3. CUEsto will:
    - Extract and populate the **Title**, **Performer**, **Date**, and **Genre** from the file's metadata tags.
+   - **Multi-Artist Support**: If the file contains multiple artists or album artists, they are automatically detected and joined with `; ` in the editor.
    - Display the precise **Total Duration** of the audio file.
    - Automatically calculate the duration of the **Final Track**.
    - Suggest the audio filename as the default when saving.
@@ -77,6 +79,15 @@ CUEsto supports importing timing and label data from **Audacity Labels** files.
 5. **Conditional Update**:
    - **Start Times**: All track timings are unconditionally updated from the Audacity file.
    - **Titles/Performers**: These are only updated if the current fields in CUEsto are empty. This allows you to re-sync timings from Audacity without losing any manual track naming corrections you've made in the editor.
+
+### Splitting Audio
+CUEsto includes a built-in audio splitting engine based on FFmpeg. You can slice a single large audio file into individual tracks based on your CUE sheet.
+1. **Link the Audio File**: Follow the steps in the [Linking an Audio File](#linking-an-audio-file) section.
+2. **Review Timings**: Ensure your track start times and durations are correct in the grid.
+3. **Click Split**: Click the **Scissors** icon at the bottom right of the editor.
+4. **Monitor Progress**: A dedicated modal will appear showing the progress of each track being created.
+5. **Direct Output**: Tracks are saved in the same directory as the source file using the naming convention: `Track## - Title.ext`.
+6. **Actions**: Once complete, you can click the **Open Folder** icon to jump directly to your new files in Windows Explorer.
 
 ### Editing Tracks
 - **Title/Performer**: Click directly on the text fields to edit the track title or performer.
