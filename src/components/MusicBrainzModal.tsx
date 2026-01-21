@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import { fetchMusicBrainzMetadata, MusicBrainzResult } from '../lib/musicbrainz';
 import { DiscogsOptions as MusicBrainzOptions } from '../lib/discogs'; // Reuse the options structure
+import { Translations } from '../lib/i18n';
 
 interface MusicBrainzModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: (result: MusicBrainzResult, options: MusicBrainzOptions) => void;
+    t: Translations;
 }
 
-export const MusicBrainzModal: React.FC<MusicBrainzModalProps> = ({ isOpen, onClose, onSuccess }) => {
+export const MusicBrainzModal: React.FC<MusicBrainzModalProps> = ({ isOpen, onClose, onSuccess, t }) => {
     const [discId, setDiscId] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -36,10 +38,10 @@ export const MusicBrainzModal: React.FC<MusicBrainzModalProps> = ({ isOpen, onCl
                 setDiscId('');
                 onClose();
             } else {
-                setError(response?.error || 'Failed to fetch metadata from MusicBrainz.');
+                setError(response?.error || t.failedToFetch);
             }
         } catch (e: any) {
-            setError('Connection with MusicBrainz failed. Please retry.');
+            setError(`${t.connectionFailed}<br>please, retry in a few moments.`);
         } finally {
             setIsLoading(false);
         }
@@ -65,12 +67,12 @@ export const MusicBrainzModal: React.FC<MusicBrainzModalProps> = ({ isOpen, onCl
             >
                 {/* Title */}
                 <h2 className="text-brand-text font-semibold text-modal-body leading-tight">
-                    import metadata from MusicBrainz
+                    {t.modalTitleMusicBrainz}
                 </h2>
 
                 {/* Help Text */}
                 <p className="text-brand-text text-modal-body font-light leading-relaxed">
-                    Search a release on{' '}
+                    {t.helpMusicBrainzPre}{' '}
                     <a
                         href="https://musicbrainz.org"
                         target="_blank"
@@ -79,7 +81,7 @@ export const MusicBrainzModal: React.FC<MusicBrainzModalProps> = ({ isOpen, onCl
                     >
                         MusicBrainz
                     </a>
-                    {' '}and copy the Disc ID, if any, from the second tab
+                    {' '}{t.helpMusicBrainzPost}
                 </p>
 
                 {/* Input Field */}
@@ -90,29 +92,29 @@ export const MusicBrainzModal: React.FC<MusicBrainzModalProps> = ({ isOpen, onCl
                         value={discId}
                         onChange={(e) => setDiscId(e.target.value)}
                         className="bg-transparent w-full outline-none text-brand-text placeholder-brand-placeholder font-light text-sm"
-                        placeholder="Disc ID (e.g. hnStsSOst2E4lWk5kbaNXMpXl_g-)"
+                        placeholder={t.discIdPlaceholder}
                     />
                 </div>
 
                 {/* Overwrite Options Checkboxes */}
                 <div className="flex flex-col gap-4 mb-2">
                     <CheckboxItem
-                        label="overwrite header (album title, performer etc.)"
+                        label={t.overwriteHeader}
                         checked={options.header}
                         onChange={() => toggleOption('header')}
                     />
                     <CheckboxItem
-                        label="overwrite track titles"
+                        label={t.overwriteTrackTitles}
                         checked={options.trackTitles}
                         onChange={() => toggleOption('trackTitles')}
                     />
                     <CheckboxItem
-                        label="overwrite track performers"
+                        label={t.overwriteTrackPerformers}
                         checked={options.trackPerformers}
                         onChange={() => toggleOption('trackPerformers')}
                     />
                     <CheckboxItem
-                        label="overwrite start times/durations"
+                        label={t.overwriteTimings}
                         checked={options.timings}
                         onChange={() => toggleOption('timings')}
                     />
@@ -138,8 +140,8 @@ export const MusicBrainzModal: React.FC<MusicBrainzModalProps> = ({ isOpen, onCl
                     <button
                         disabled={isLoading || !discId.trim()}
                         onClick={handleImport}
-                        className="text-brand-orange hover:drop-shadow-[0_0_8px_var(--color-brand-orange)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                        data-tooltip="get metadata"
+                        className="text-brand-orange hover:drop-shadow-[0_0_8px_var(--color-brand-orange)] transition-all disabled:text-brand-placeholder disabled:cursor-auto"
+                        data-tooltip={t.getMetadata}
                     >
                         <svg width="24" height="24" viewBox="3177 2031 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M3195.302001953125,2038.1209716796875C3193.952880859375,2035,3190.922119140625,2033,3187.5,2033C3182.81298828125,2033,3179,2036.81298828125,3179,2041.5C3179,2042.0909423828125,3179.06103515625,2042.6800537109375,3179.180908203125,2043.2540283203125C3177.826904296875,2044.125,3177,2045.623046875,3177,2047.25C3177,2049.868896484375,3179.131103515625,2052,3181.75,2052L3194,2052C3197.860107421875,2052,3201,2048.85888671875,3201,2045C3201,2041.64501953125,3198.570068359375,2038.737060546875,3195.302001953125,2038.1209716796875ZM3194,2051L3181.75,2051C3179.681884765625,2051,3178,2049.31689453125,3178,2047.25C3178,2045.863037109375,3178.760986328125,2044.593994140625,3179.987060546875,2043.93896484375L3180.3330078125,2043.7530517578125L3180.235107421875,2043.373046875C3180.077880859375,2042.7640380859375,3179.9990234375,2042.134033203125,3179.9990234375,2041.4990234375C3179.9990234375,2037.363037109375,3183.363037109375,2033.9990234375,3187.4990234375,2033.9990234375C3190.60205078125,2033.9990234375,3193.342041015625,2035.864013671875,3194.47900390625,2038.7509765625L3194.5849609375,2039.02099609375L3194.8720703125,2039.06298828125C3197.794921875,2039.489013671875,3199.998046875,2042.041015625,3199.998046875,2045C3199.998046875,2048.30908203125,3197.306884765625,2051,3193.998046875,2051ZM3192.14599609375,2043.56103515625L3192.85302734375,2044.2679443359375L3189.56005859375,2047.56103515625C3189.26806640625,2047.85302734375,3188.884033203125,2047.9990234375,3188.4990234375,2047.9990234375C3188.114013671875,2047.9990234375,3187.73095703125,2047.85302734375,3187.43798828125,2047.56103515625L3184.14501953125,2044.2679443359375L3184.85205078125,2043.56103515625L3187.998046875,2046.70703125L3187.998046875,2039L3188.998046875,2039L3188.998046875,2046.70703125L3192.14404296875,2043.56103515625Z" fill="currentColor" />

@@ -5,9 +5,10 @@ interface AlertModalProps {
     title: string;
     message: string;
     onClose: () => void;
+    okTooltip?: string;
 }
 
-export const AlertModal: React.FC<AlertModalProps> = ({ isOpen, title, message, onClose }) => {
+export const AlertModal: React.FC<AlertModalProps> = ({ isOpen, title, message, onClose, okTooltip = 'ok' }) => {
     if (!isOpen) return null;
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -36,9 +37,9 @@ export const AlertModal: React.FC<AlertModalProps> = ({ isOpen, title, message, 
                     <button
                         onClick={onClose}
                         className="text-brand-orange hover:drop-shadow-[0_0_8px_var(--color-brand-orange)] transition-all"
-                        data-tooltip="ok"
+                        data-tooltip={okTooltip}
                     >
-                        <img src="icons/ok.svg" alt="ok" className="size-6" />
+                        <img src="icons/ok.svg" alt={okTooltip} className="size-6" />
                     </button>
                 </div>
             </div>

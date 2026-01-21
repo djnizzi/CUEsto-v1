@@ -2,6 +2,7 @@ import React from 'react';
 import { TimeInput } from './TimeInput';
 import { CueTrack } from '../lib/cueParser';
 import { framesToTime } from '../lib/timeUtils';
+import { Translations } from '../lib/i18n';
 
 interface TrackRowProps {
     track: CueTrack;
@@ -13,6 +14,7 @@ interface TrackRowProps {
     onDelete: (index: number) => void;
     isDurationReadOnly?: boolean;
     showDuration?: boolean;
+    t: Translations;
 }
 
 export const TrackRow: React.FC<TrackRowProps> = ({
@@ -24,7 +26,8 @@ export const TrackRow: React.FC<TrackRowProps> = ({
     onStartTimeChange,
     onDelete,
     isDurationReadOnly,
-    showDuration = true
+    showDuration = true,
+    t
 }) => {
     return (
         <div className="flex items-center gap-2 py-1 text-brand-text">
@@ -38,7 +41,7 @@ export const TrackRow: React.FC<TrackRowProps> = ({
                         className="bg-transparent w-full outline-none text-sm text-brand-text font-light"
                         value={track.title}
                         onChange={(e) => onUpdate(index, 'title', e.target.value)}
-                        placeholder="title"
+                        placeholder={t.title}
                     />
                 </div>
             </div>
@@ -50,7 +53,7 @@ export const TrackRow: React.FC<TrackRowProps> = ({
                         className="bg-transparent w-full outline-none text-sm text-brand-text font-light"
                         value={track.performer}
                         onChange={(e) => onUpdate(index, 'performer', e.target.value)}
-                        placeholder="performer"
+                        placeholder={t.performer}
                     />
                 </div>
             </div>
@@ -86,7 +89,7 @@ export const TrackRow: React.FC<TrackRowProps> = ({
             <button
                 onClick={() => onDelete(index)}
                 className="w-8 flex justify-center text-brand-orange hover:drop-shadow-[0_0_8px_var(--color-brand-orange)] transition-all"
-                data-tooltip="delete track"
+                data-tooltip={t.deleteTrack}
             >
                 <img src="icons/trash.svg" alt="delete" className="w-6 h-6" />
             </button>

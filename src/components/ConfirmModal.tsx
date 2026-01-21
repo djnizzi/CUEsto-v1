@@ -6,9 +6,19 @@ interface ConfirmModalProps {
     message: string;
     onConfirm: () => void;
     onCancel: () => void;
+    confirmTooltip?: string;
+    cancelTooltip?: string;
 }
 
-export const ConfirmModal: React.FC<ConfirmModalProps> = ({ isOpen, title, message, onConfirm, onCancel }) => {
+export const ConfirmModal: React.FC<ConfirmModalProps> = ({
+    isOpen,
+    title,
+    message,
+    onConfirm,
+    onCancel,
+    confirmTooltip = 'confirm',
+    cancelTooltip = 'cancel'
+}) => {
     if (!isOpen) return null;
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -28,7 +38,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({ isOpen, title, messa
                 autoFocus
             >
                 {/* Title */}
-                <h2 className="text-brand-text font-semibold text-modal-body leading-tight capitalize">
+                <h2 className="text-brand-text font-semibold text-modal-body leading-tight">
                     {title}
                 </h2>
 
@@ -43,16 +53,16 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({ isOpen, title, messa
                     <button
                         onClick={onCancel}
                         className="text-brand-orange hover:drop-shadow-[0_0_8px_var(--color-brand-orange)] transition-all"
-                        data-tooltip="cancel"
+                        data-tooltip={cancelTooltip}
                     >
-                        <img src="icons/cancel.svg" alt="cancel" className="size-6" />
+                        <img src="icons/cancel.svg" alt={cancelTooltip} className="size-6" />
                     </button>
                     <button
                         onClick={onConfirm}
                         className="text-brand-orange hover:drop-shadow-[0_0_8px_var(--color-brand-orange)] transition-all"
-                        data-tooltip="clear all"
+                        data-tooltip={confirmTooltip}
                     >
-                        <img src="icons/ok.svg" alt="clear all" className="size-6" />
+                        <img src="icons/ok.svg" alt={confirmTooltip} className="size-6" />
                     </button>
 
 

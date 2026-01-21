@@ -101,26 +101,61 @@ ipcMain.handle('dialog:openAudioFile', async () => {
       const durationSeconds = metadata.format.duration || 0
       // Convert to frames (75 fps)
       const totalFrames = Math.floor(durationSeconds * 75)
-
       const common = metadata.common;
 
-      const formatArtists = (artists: string[] | string | undefined) => {
-        if (!artists) return '';
-        if (Array.isArray(artists)) return artists.join('; ');
-        return artists;
-      };
 
-      const albumArtist = formatArtists((common as any).albumartists || common.albumartist).trim();
-      const trackArtist = formatArtists(common.artists || common.artist).trim();
-      // Prioritize Album Artist, fallback to Artist
-      const finalArtist = albumArtist || trackArtist;
+const formatArtists = (artists: any): string => {
+  if (!artists) return '';
+  // Native values are often returned as an array of objects or strings
+  if (Array.isArray(artists)) {
+    return artists.map(a => (typeof a === 'object' ? a.value : a)).join('; ');
+  }
+  return typeof artists === 'object' ? artists.value : artists;
+};
+
+const getAllNativeAlbumArtists = (metadata: mm.IAudioMetadata): string => {
+  const albumArtists: string[] = [];
+
+  // Define relevant tag IDs per format
+  const tagMap: Record<string, string[]> = {
+    'ID3v2.3': ['TPE2'],
+    'ID3v2.4': ['TPE2'],
+    'ID3v2.2': ['TP2'],
+    'vorbis': ['ALBUMARTIST', 'ALBUM ARTIST'],
+    'iTunes': ['aART']
+  };
+
+  // Iterate through available native formats
+  for (const [format, tags] of Object.entries(metadata.native)) {
+    const relevantIds = tagMap[format];
+    if (relevantIds) {
+      tags.forEach(tag => {
+        if (relevantIds.includes(tag.id)) {
+          const value = formatArtists(tag.value);
+          if (value) albumArtists.push(value);
+        }
+      });
+    }
+  }
+
+  // Deduplicate and join
+  return [...new Set(albumArtists)].join('; ');
+};
+
+// Application logic
+const albumArtist = getAllNativeAlbumArtists(metadata).trim();
+const trackArtist = formatArtists(metadata.common.artists || metadata.common.artist).trim();
+
+// Final fallback chain
+const finalArtist = albumArtist || formatArtists(metadata.common.albumartist) || trackArtist;
+
 
       return {
         filename: path.basename(filePath),
         filepath: filePath,
         durationFrames: totalFrames,
         metadata: {
-          title: common.title || '',
+          title: common.album || '',
           artist: finalArtist,
           year: common.year?.toString() || '',
           genre: common.genre?.join('; ') || ''

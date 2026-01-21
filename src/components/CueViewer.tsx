@@ -11,7 +11,7 @@ export const CueViewer: React.FC = () => {
             }
         };
         fetchContent();
-        document.title = 'CUE Viewer';
+        document.title = 'CUE code viewer';
     }, []);
 
     const highlightLine = (line: string) => {

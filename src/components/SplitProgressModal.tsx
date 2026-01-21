@@ -1,4 +1,5 @@
 import React from 'react';
+import { Translations } from '../lib/i18n';
 
 interface SplitProgressModalProps {
     isOpen: boolean;
@@ -9,6 +10,7 @@ interface SplitProgressModalProps {
     fileName: string;
     onClose: () => void;
     onOpenFolder: () => void;
+    t: Translations;
 }
 
 export const SplitProgressModal: React.FC<SplitProgressModalProps> = ({
@@ -19,7 +21,8 @@ export const SplitProgressModal: React.FC<SplitProgressModalProps> = ({
     totalTracks,
     fileName,
     onClose,
-    onOpenFolder
+    onOpenFolder,
+    t
 }) => {
     if (!isOpen) return null;
 
@@ -30,14 +33,14 @@ export const SplitProgressModal: React.FC<SplitProgressModalProps> = ({
             <div className="bg-brand-surface p-8 rounded-modal shadow-2xl w-full max-w-[480px] border border-white/5 transition-all duration-300 relative overflow-hidden flex flex-col gap-6">
 
                 <h2 className="text-brand-text font-semibold text-modal-body leading-tight capitalize">
-                    {isFinished ? 'Splitting Complete' : 'Splitting Audio...'}
+                    {isFinished ? t.splittingComplete : `${t.splitting}...`}
                 </h2>
 
                 <div className="flex flex-col gap-4">
                     {!isFinished ? (
                         <>
                             <div className="flex justify-between text-brand-text text-modal-body">
-                                <span className="truncate max-w-[80%]">{fileName || 'Preparing...'}</span>
+                                <span className="truncate max-w-[80%]">{fileName || t.preparing}</span>
                                 <span>{currentTrack} / {totalTracks}</span>
                             </div>
                             <div className="progress-container !mt-0">
@@ -51,7 +54,7 @@ export const SplitProgressModal: React.FC<SplitProgressModalProps> = ({
                         </>
                     ) : (
                         <p className="text-brand-text text-modal-body font-light leading-relaxed">
-                            Created {totalTracks} files, one for each track in the cue sheet.
+                            {t.filesCreated}: {totalTracks}
                         </p>
                     )}
                 </div>
@@ -61,7 +64,7 @@ export const SplitProgressModal: React.FC<SplitProgressModalProps> = ({
                         <button
                             onClick={onOpenFolder}
                             className="text-brand-orange hover:drop-shadow-[0_0_8px_var(--color-brand-orange)] transition-all"
-                            data-tooltip="open folder in explorer"
+                            data-tooltip={t.openFolder}
                         >
                             <img src="icons/open.svg" alt="open folder" className="size-6" />
                         </button>
@@ -71,7 +74,7 @@ export const SplitProgressModal: React.FC<SplitProgressModalProps> = ({
                         <button
                             onClick={onClose}
                             className="text-brand-orange hover:drop-shadow-[0_0_8px_var(--color-brand-orange)] transition-all"
-                            data-tooltip="close"
+                            data-tooltip={t.close}
                         >
                             <img src="icons/cancel.svg" alt="close" className="size-6" />
                         </button>

@@ -13,6 +13,8 @@ import { DiscogsOptions, DiscogsResult, interpolateTimings, discogsTracksToCueTr
 import { ConfirmModal } from './ConfirmModal';
 import { SplitProgressModal } from './SplitProgressModal';
 import { AlertModal } from './AlertModal';
+import { LanguageSelector } from './LanguageSelector';
+import { Language, getCurrentLanguage, getTranslations } from '../lib/i18n';
 
 type MusicBrainzOptions = DiscogsOptions;
 
@@ -37,16 +39,19 @@ export const CueEditor: React.FC = () => {
     const [isSplitModalOpen, setIsSplitModalOpen] = useState(false);
 
     // Modal States
-    const [alertModal, setAlertModal] = useState<{ isOpen: boolean, title: string, message: string }>({
-        isOpen: false,
-        title: '',
-        message: ''
-    });
-    const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean, title: string, message: string, onConfirm: () => void }>({
+    const [alertModal, setAlertModal] = useState<{ isOpen: boolean, title: string, message: string, okTooltip?: string }>({
         isOpen: false,
         title: '',
         message: '',
-        onConfirm: () => { }
+        okTooltip: 'ok'
+    });
+    const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean, title: string, message: string, onConfirm: () => void, confirmTooltip?: string, cancelTooltip?: string }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => { },
+        confirmTooltip: 'confirm',
+        cancelTooltip: 'cancel'
     });
     const [isGnuDbModalOpen, setIsGnuDbModalOpen] = useState(false);
     const [isDiscogsModalOpen, setIsDiscogsModalOpen] = useState(false);
@@ -55,6 +60,12 @@ export const CueEditor: React.FC = () => {
     const [fullAudioPath, setFullAudioPath] = useState<string | null>(null);
     const [hasAttemptedSplit, setHasAttemptedSplit] = useState(false);
     const [splitProgress, setSplitProgress] = useState<{ progress: number, currentTrack: number, totalTracks: number, fileName: string } | null>(null);
+    const [currentLanguage, setCurrentLanguage] = useState<Language>(getCurrentLanguage());
+    const t = getTranslations(currentLanguage);
+
+    const handleLanguageChange = (lang: Language) => {
+        setCurrentLanguage(lang);
+    };
 
     const showSaveToast = () => {
         setShowToast(true);
@@ -68,13 +79,27 @@ export const CueEditor: React.FC = () => {
         }));
     };
 
-    const showAlert = (title: string, message: string) => {
-        setAlertModal({ isOpen: true, title, message });
+    const showAlert = (title: string, message: string, okTooltip?: string) => {
+        setAlertModal({ isOpen: true, title, message, okTooltip: okTooltip || t.ok });
     };
 
-    const showConfirm = (title: string, message: string, onConfirm: () => void) => {
-        setConfirmModal({ isOpen: true, title, message, onConfirm });
+    const showConfirm = (title: string, message: string, onConfirm: () => void, confirmTooltip?: string, cancelTooltip?: string) => {
+        setConfirmModal({
+            isOpen: true,
+            title,
+            message,
+            onConfirm,
+            confirmTooltip: confirmTooltip || t.confirm,
+            cancelTooltip: cancelTooltip || t.cancel
+        });
     };
+
+    React.useEffect(() => {
+        const titleSuffix = currentFilePath
+            ? ` | ${currentFilePath.replace(/^.*[\\/]/, '')}`
+            : ` | ${t.newCueFile}`;
+        document.title = `CUEsto ${appVersion}${titleSuffix}`;
+    }, [appVersion, currentFilePath, t]);
 
     React.useEffect(() => {
         console.log('CueEditor mounted');
@@ -83,7 +108,6 @@ export const CueEditor: React.FC = () => {
                 if ((window as any).ipcRenderer) {
                     const version = await (window as any).ipcRenderer.invoke('getAppVersion');
                     setAppVersion(version);
-                    document.title = `CUEsto ${version}`;
                 }
             } catch (e) {
                 console.error('Failed to get app version', e);
@@ -147,7 +171,7 @@ export const CueEditor: React.FC = () => {
                 setIsSplitting(false);
                 setIsSplitModalOpen(false); // Close the progress modal on error
                 setSplitProgress(null);
-                showAlert('Splitting Error', error);
+                showAlert(t.splittingError, error);
             });
         }
 
@@ -224,14 +248,14 @@ export const CueEditor: React.FC = () => {
     };
 
     const handleDeleteTrack = (index: number) => {
-        showConfirm('Delete Track', `Are you sure you want to delete track ${cue.tracks[index].number}?`, () => {
+        showConfirm(t.deleteTrack, `${t.deleteTrackConfirm} ${cue.tracks[index].number}?`, () => {
             const newTracks = [...cue.tracks];
             newTracks.splice(index, 1);
             // Re-number
-            newTracks.forEach((t, i) => t.number = i + 1);
+            newTracks.forEach((track, i) => track.number = i + 1);
             setCue(prev => ({ ...prev, tracks: newTracks }));
             setConfirmModal(prev => ({ ...prev, isOpen: false }));
-        });
+        }, t.deleteTrack, t.cancel);
     };
 
     const handleAddRow = () => {
@@ -254,7 +278,7 @@ export const CueEditor: React.FC = () => {
     };
 
     const handleClear = () => {
-        showConfirm('Clear All', 'Are you sure you want to clear all data? This will reset the entire cue sheet and tracklist. Any unsaved changes will be lost.', confirmClear);
+        showConfirm(t.clearAll, t.clearAllConfirm, confirmClear, t.clearAll, t.cancel);
     };
 
     const confirmClear = () => {
@@ -281,7 +305,7 @@ export const CueEditor: React.FC = () => {
             }
         } catch (e) {
             console.error(e);
-            showAlert('Error Opening File', `Failed to open file: ${(e as any).message || e}`);
+            showAlert(t.errorOpeningFile, `Failed to open file: ${(e as any).message || e}`);
         }
     };
 
@@ -292,7 +316,7 @@ export const CueEditor: React.FC = () => {
             if (result) {
                 const { filename, filepath, durationFrames, metadata, error } = result;
                 if (error) {
-                    showAlert('Error', error);
+                    showAlert(t.error, error);
                 }
                 setFullAudioPath(filepath);
                 setHasAttemptedSplit(false);
@@ -308,7 +332,7 @@ export const CueEditor: React.FC = () => {
             }
         } catch (e) {
             console.error('Failed to select audio file', e);
-            showAlert('Error Selecting Audio', `Failed to select audio file: ${(e as any).message || e}`);
+            showAlert(t.errorSelectingAudio, `Failed to select audio file: ${(e as any).message || e}`);
         }
     };
 
@@ -336,7 +360,7 @@ export const CueEditor: React.FC = () => {
                 }
             } catch (e) {
                 console.error('Import failed', e);
-                showAlert('Import Failed', `Failed to import from 1001tracklists: ${(e as any).message || e}`);
+                showAlert(t.importFailed, `Failed to import from 1001tracklists: ${(e as any).message || e}`);
             }
         } else if (source === 'gnudb') {
             setIsGnuDbModalOpen(true);
@@ -364,13 +388,13 @@ export const CueEditor: React.FC = () => {
                 }
             } catch (e) {
                 console.error('Audacity import failed', e);
-                showAlert('Audacity Import Failed', `Failed to import Audacity labels: ${(e as any).message || e}`);
+                showAlert(t.audacityImportFailed, `Failed to import Audacity labels: ${(e as any).message || e}`);
             }
         } else if (source === 'musicbrainz') {
             setIsMusicBrainzModalOpen(true);
         } else {
             console.log('Import source not implemented:', source);
-            showAlert('Import Not Implemented', `Import from '${source}' is not yet implemented.`);
+            showAlert(t.importNotImplemented, `Import from '${source}' is not yet implemented.`);
         }
     };
 
@@ -521,7 +545,7 @@ export const CueEditor: React.FC = () => {
             }
         } catch (e) {
             console.error(e);
-            showAlert('Save Error', `Failed to save file: ${(e as any).message || e}`);
+            showAlert(t.errorSaving, `Failed to save file: ${(e as any).message || e}`);
         }
     };
 
@@ -545,7 +569,7 @@ export const CueEditor: React.FC = () => {
             }
         } catch (e) {
             console.error(e);
-            showAlert('Save As Error', `Failed to save file: ${(e as any).message || e}`);
+            showAlert(t.errorSaveAs, `Failed to save file: ${(e as any).message || e}`);
         }
     };
 
@@ -561,23 +585,23 @@ export const CueEditor: React.FC = () => {
             await (window as any).ipcRenderer.invoke('shell:open-folder', fullAudioPath);
         } catch (e) {
             console.error('Failed to open folder', e);
-            showAlert('Error', `Could not open folder: ${(e as any).message || e}`);
+            showAlert(t.error, `Could not open folder: ${(e as any).message || e}`);
         }
     };
 
     const handleSplitAudio = () => {
         setHasAttemptedSplit(true);
         if (!fullAudioPath) {
-            showAlert('Missing Audio', 'Please select an audio file first using the icon in the file name field.');
+            showAlert(t.missingAudio, t.missingAudioMessage);
             return;
         }
         if (cue.tracks.length === 0) {
-            showAlert('No Tracks', 'The CUE sheet has no tracks to split.');
+            showAlert(t.noTracks, t.noTracksMessage);
             return;
         }
         // Check if last track has duration or if we have total duration
         if (!cue.totalDuration || cue.totalDuration <= 0) {
-            showAlert('Missing Duration', 'Total audio duration is unknown. The last track might not split correctly.');
+            showAlert(t.missingDuration, t.missingDurationMessage);
         }
 
         setIsSplitting(true);
@@ -604,10 +628,16 @@ export const CueEditor: React.FC = () => {
     return (
         <div className="min-h-screen bg-brand-dark text-brand-text font-sans selection:bg-brand-orange selection:text-white">
             {/* Brand Header */}
-            <div className="flex justify-center py-6">
-                <h1 className="text-4xl font-bold flex items-center gap-2">
+            <div className="flex justify-between items-center py-6 px-8 max-w-7xl mx-auto w-full relative">
+                <div className="flex-1"></div>
+
+                <h1 className="text-4xl font-bold flex items-center justify-center gap-2">
                     <img src="images/logo.png" alt="CUEsto Logo" className="h-20 w-auto" />
                 </h1>
+
+                <div className="flex-1 flex justify-end">
+                    {/* Language Selector moved to bottom bar */}
+                </div>
             </div>
 
             <MetadataHeader
@@ -623,16 +653,17 @@ export const CueEditor: React.FC = () => {
                 onSelectAudioFile={handleSelectAudioFile}
                 isAudioResolved={!!fullAudioPath}
                 showAudioError={hasAttemptedSplit && !fullAudioPath}
+                t={t}
             />
 
             <div className="max-w-5xl mx-auto px-6 mt-1 pb-10">
                 {/* Table Header */}
                 <div className="flex gap-2 text-sm text-brand-text mb-2 px-2 font-normal">
-                    <div className="w-3 text-right">#</div>
-                    <div className="flex-1 pl-6">title</div>
-                    <div className="flex-1 pl-5">performer</div>
-                    <div className="w-24 pl-6">start time</div>
-                    <div className="w-24 pl-7">duration</div>
+                    <div className="w-3 text-right">{t.trackNumber}</div>
+                    <div className="flex-1 pl-6">{t.title}</div>
+                    <div className="flex-1 pl-5">{t.performer}</div>
+                    <div className="w-24 pl-6">{t.startTime}</div>
+                    <div className="w-24 pl-7">{t.duration}</div>
                     <div className="w-8"></div>
                 </div>
 
@@ -649,6 +680,7 @@ export const CueEditor: React.FC = () => {
                             onDurationChange={handleDurationChange}
                             onStartTimeChange={handleStartTimeChange}
                             onDelete={handleDeleteTrack}
+                            t={t}
                         />
                     ))}
                 </div>
@@ -657,47 +689,53 @@ export const CueEditor: React.FC = () => {
                     <button
                         onClick={handleAddRow}
                         className="text-brand-orange hover:drop-shadow-[0_0_8px_var(--color-brand-orange)] transition-all"
-                        data-tooltip="add row"
+                        data-tooltip={t.addRow}
                     >
-                        <img src="icons/add.svg" alt="add row" className="size-6" />
+                        <img src="icons/add.svg" alt={t.addRow} className="size-6" />
                     </button>
                     <button
                         onClick={handleViewCue}
                         className="text-brand-orange hover:drop-shadow-[0_0_8px_var(--color-brand-orange)] transition-all"
-                        data-tooltip="view cue"
+                        data-tooltip={t.viewCue}
                     >
-                        <img src="icons/code.svg" alt="view cue" className="size-6" />
+                        <img src="icons/code.svg" alt={t.viewCue} className="size-6" />
                     </button>
                     <button
                         onClick={handleClear}
                         className="text-brand-orange hover:drop-shadow-[0_0_8px_var(--color-brand-orange)] transition-all"
-                        data-tooltip="clear"
+                        data-tooltip={t.clear}
                     >
-                        <img src="icons/clean.svg" alt="clear" className="size-6" />
+                        <img src="icons/clean.svg" alt={t.clear} className="size-6" />
                     </button>
                     {currentFilePath && (
                         <button
                             onClick={handleSave}
                             className="text-brand-orange hover:drop-shadow-[0_0_8px_var(--color-brand-orange)] transition-all"
-                            data-tooltip="save"
+                            data-tooltip={t.save}
                         >
-                            <img src="icons/save.svg" alt="save" className="size-6" />
+                            <img src="icons/save.svg" alt={t.save} className="size-6" />
                         </button>
                     )}
                     <button
                         onClick={handleSaveAs}
                         className="text-brand-orange hover:drop-shadow-[0_0_8px_var(--color-brand-orange)] transition-all"
-                        data-tooltip="save as"
+                        data-tooltip={t.saveAs}
                     >
-                        <img src="icons/saveas.svg" alt="save as" className="size-6" />
+                        <img src="icons/saveas.svg" alt={t.saveAs} className="size-6" />
                     </button>
                     <button
                         onClick={handleSplitAudio}
                         className="text-brand-orange hover:drop-shadow-[0_0_8px_var(--color-brand-orange)] transition-all"
-                        data-tooltip="split audio"
+                        data-tooltip={t.splitAudio}
                     >
-                        <img src="icons/split.svg" alt="split audio" className="size-6" />
+                        <img src="icons/split.svg" alt={t.splitAudio} className="size-6" />
                     </button>
+
+                    <LanguageSelector
+                        onLanguageChange={handleLanguageChange}
+                        variant="icon"
+                        direction="up"
+                    />
                 </div>
 
                 {/* The SplitProgressModal will handle rendering progress */}
@@ -705,8 +743,8 @@ export const CueEditor: React.FC = () => {
 
             {/* Toast Notification */}
             {showToast && (
-                <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-brand-subheader text-brand-text px-6 py-2 rounded-full shadow-lg font-medium transition-opacity animate-fade-in-up">
-                    Saved successfully
+                <div className="fixed bottom-8 left-1/2 bg-brand-surface/10 backdrop-blur-sm px-6 py-2 rounded-full border text-modal-body font-light transition-opacity animate-fade-in-up">
+                    {t.savedSuccessfully}
                 </div>
             )}
 
@@ -714,6 +752,7 @@ export const CueEditor: React.FC = () => {
                 isOpen={isGnuDbModalOpen}
                 onClose={() => setIsGnuDbModalOpen(false)}
                 onSuccess={handleGnuDbSuccess}
+                t={t}
             />
 
             <DiscogsModal
@@ -721,12 +760,14 @@ export const CueEditor: React.FC = () => {
                 onClose={() => setIsDiscogsModalOpen(false)}
                 onSuccess={handleDiscogsSuccess}
                 totalDuration={cue.totalDuration}
+                t={t}
             />
 
             <MusicBrainzModal
                 isOpen={isMusicBrainzModalOpen}
                 onClose={() => setIsMusicBrainzModalOpen(false)}
                 onSuccess={handleMusicBrainzSuccess}
+                t={t}
             />
 
             <SplitProgressModal
@@ -738,6 +779,7 @@ export const CueEditor: React.FC = () => {
                 fileName={splitProgress?.fileName || ''}
                 onClose={() => setIsSplitModalOpen(false)}
                 onOpenFolder={handleOpenFolder}
+                t={t}
             />
 
             <AlertModal
@@ -745,6 +787,7 @@ export const CueEditor: React.FC = () => {
                 title={alertModal.title}
                 message={alertModal.message}
                 onClose={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+                okTooltip={alertModal.okTooltip}
             />
 
             <ConfirmModal
@@ -753,6 +796,8 @@ export const CueEditor: React.FC = () => {
                 message={confirmModal.message}
                 onConfirm={confirmModal.onConfirm}
                 onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                confirmTooltip={confirmModal.confirmTooltip}
+                cancelTooltip={confirmModal.cancelTooltip}
             />
         </div>
     );

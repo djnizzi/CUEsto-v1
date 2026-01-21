@@ -21,6 +21,7 @@
   --color-brand-subheader: #787169;
 
   --radius-modal: 32px;
+  --radius-dropdown: 16px;
 
   /* Viewer Syntax Colors */
   --color-syntax-file: #007fff;
@@ -79,6 +80,10 @@ body {
 
 button {
   cursor: pointer;
+}
+
+button:disabled {
+  cursor: auto;
 }
 
 /* Explicit placeholder styling */
