@@ -36,7 +36,7 @@ export const TrackRow: React.FC<TrackRowProps> = ({
 
             {/* Title */}
             <div className="flex-1">
-                <div className="border border-white/20 rounded-full px-3 py-1 flex items-center bg-transparent focus-within:border-brand-orange">
+                <div className="border border-brand-input-border rounded-full px-3 py-1 flex items-center bg-transparent focus-within:border-brand-orange">
                     <input
                         className="bg-transparent w-full outline-none text-sm text-brand-text font-light"
                         value={track.title}
@@ -48,7 +48,7 @@ export const TrackRow: React.FC<TrackRowProps> = ({
 
             {/* Performer */}
             <div className="flex-1">
-                <div className="border border-white/20 rounded-full px-3 py-1 flex items-center bg-transparent focus-within:border-brand-orange">
+                <div className="border border-brand-input-border rounded-full px-3 py-1 flex items-center bg-transparent focus-within:border-brand-orange">
                     <input
                         className="bg-transparent w-full outline-none text-sm text-brand-text font-light"
                         value={track.performer}
@@ -60,7 +60,7 @@ export const TrackRow: React.FC<TrackRowProps> = ({
 
             {/* Start Time */}
             <div className="w-24">
-                <div className="border border-white/20 rounded-full px-3 py-1 flex items-center justify-center bg-transparent focus-within:border-brand-orange">
+                <div className="border border-brand-input-border rounded-full px-3 py-1 flex items-center justify-center bg-transparent focus-within:border-brand-orange">
                     <TimeInput
                         value={framesToTime(track.index01)}
                         onChange={(val) => onStartTimeChange(index, val)}
@@ -72,7 +72,7 @@ export const TrackRow: React.FC<TrackRowProps> = ({
             {/* Duration */}
             <div className="w-24">
                 {showDuration ? (
-                    <div className={`${isDurationReadOnly ? 'border-none' : 'border border-white/20 rounded-full'} px-3 py-1 flex items-center justify-center bg-transparent ${isDurationReadOnly ? '' : 'focus-within:border-brand-orange'}`}>
+                    <div className={`${isDurationReadOnly ? 'border-none' : 'border border-brand-input-border rounded-full'} px-3 py-1 flex items-center justify-center bg-transparent ${isDurationReadOnly ? '' : 'focus-within:border-brand-orange'}`}>
                         <TimeInput
                             value={framesToTime(durationFrames)}
                             onChange={(val) => !isDurationReadOnly && onDurationChange(index, val)}

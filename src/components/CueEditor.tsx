@@ -14,7 +14,9 @@ import { ConfirmModal } from './ConfirmModal';
 import { SplitProgressModal } from './SplitProgressModal';
 import { AlertModal } from './AlertModal';
 import { LanguageSelector } from './LanguageSelector';
+import { SettingsModal } from './SettingsModal';
 import { Language, getCurrentLanguage, getTranslations } from '../lib/i18n';
+import { useTheme } from '../lib/themeContext';
 
 type MusicBrainzOptions = DiscogsOptions;
 
@@ -32,6 +34,7 @@ const INITIAL_CUE: CueSheet = {
 };
 
 export const CueEditor: React.FC = () => {
+    const { theme } = useTheme();
     const [cue, setCue] = useState<CueSheet>(INITIAL_CUE);
     const [showToast, setShowToast] = useState(false);
     const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
@@ -56,7 +59,8 @@ export const CueEditor: React.FC = () => {
     const [isGnuDbModalOpen, setIsGnuDbModalOpen] = useState(false);
     const [isDiscogsModalOpen, setIsDiscogsModalOpen] = useState(false);
     const [isMusicBrainzModalOpen, setIsMusicBrainzModalOpen] = useState(false);
-    const [appVersion, setAppVersion] = useState('1.0.7');
+    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+    const [appVersion, setAppVersion] = useState('1.0.14');
     const [fullAudioPath, setFullAudioPath] = useState<string | null>(null);
     const [hasAttemptedSplit, setHasAttemptedSplit] = useState(false);
     const [splitProgress, setSplitProgress] = useState<{ progress: number, currentTrack: number, totalTracks: number, fileName: string } | null>(null);
@@ -632,7 +636,7 @@ export const CueEditor: React.FC = () => {
                 <div className="flex-1"></div>
 
                 <h1 className="text-4xl font-bold flex items-center justify-center gap-2">
-                    <img src="images/logo.png" alt="CUEsto Logo" className="h-20 w-auto" />
+                    <img src={`images/logo${theme === 'light' ? '-light' : ''}.png`} alt="CUEsto Logo" className="h-20 w-auto" />
                 </h1>
 
                 <div className="flex-1 flex justify-end">
@@ -735,6 +739,8 @@ export const CueEditor: React.FC = () => {
                         onLanguageChange={handleLanguageChange}
                         variant="icon"
                         direction="up"
+                        onIconClick={() => setIsSettingsModalOpen(true)}
+                        currentLanguage={currentLanguage}
                     />
                 </div>
 
@@ -798,6 +804,13 @@ export const CueEditor: React.FC = () => {
                 onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
                 confirmTooltip={confirmModal.confirmTooltip}
                 cancelTooltip={confirmModal.cancelTooltip}
+            />
+
+            <SettingsModal
+                isOpen={isSettingsModalOpen}
+                onClose={() => setIsSettingsModalOpen(false)}
+                onLanguageChange={handleLanguageChange}
+                currentLanguage={currentLanguage}
             />
         </div>
     );

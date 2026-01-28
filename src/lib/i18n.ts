@@ -106,6 +106,9 @@ export interface Translations {
     // Settings
     language: string;
     selectLanguage: string;
+    settings: string;
+    lightMode: string;
+    darkMode: string;
 }
 
 const translations: Record<Language, Translations> = {
@@ -201,6 +204,9 @@ const translations: Record<Language, Translations> = {
 
         language: 'language',
         selectLanguage: 'language',
+        settings: 'settings',
+        lightMode: 'light mode',
+        darkMode: 'dark mode',
     },
 
     de: {
@@ -295,6 +301,9 @@ const translations: Record<Language, Translations> = {
 
         language: 'sprache',
         selectLanguage: 'sprache',
+        settings: 'einstellungen',
+        lightMode: 'hellmodus',
+        darkMode: 'dunkelmodus',
     },
 
     es: {
@@ -389,6 +398,9 @@ const translations: Record<Language, Translations> = {
 
         language: 'idioma',
         selectLanguage: 'idioma',
+        settings: 'ajustes',
+        lightMode: 'modo claro',
+        darkMode: 'modo oscuro',
     },
 
     fr: {
@@ -483,6 +495,9 @@ const translations: Record<Language, Translations> = {
 
         language: 'langue',
         selectLanguage: 'langue',
+        settings: 'paramètres',
+        lightMode: 'mode clair',
+        darkMode: 'mode sombre',
     },
 
     it: {
@@ -577,6 +592,9 @@ const translations: Record<Language, Translations> = {
 
         language: 'lingua',
         selectLanguage: 'lingua',
+        settings: 'impostazioni',
+        lightMode: 'modalità chiara',
+        darkMode: 'modalità scura',
     },
 };
 

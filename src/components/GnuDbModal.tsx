@@ -91,7 +91,7 @@ export const GnuDbModal: React.FC<GnuDbModalProps> = ({ isOpen, onClose, onSucce
 
                 {/* Input Field */}
                 <div>
-                    <div className="border border-white/20 rounded-full px-3 py-1 flex items-center bg-transparent focus-within:border-brand-orange transition-colors">
+                    <div className="border border-brand-input-border rounded-full px-3 py-1 flex items-center bg-transparent focus-within:border-brand-orange transition-colors">
                         <input
                             disabled={isLoading}
                             type="text"
@@ -172,7 +172,7 @@ interface CheckboxItemProps {
 
 const CheckboxItem: React.FC<CheckboxItemProps> = ({ label, checked, onChange }) => (
     <div className="flex items-center gap-3 group cursor-pointer" onClick={onChange}>
-        <div className={`w-5 h-5 rounded-[4px] border border-white/20 flex items-center justify-center transition-all duration-200 ${checked ? 'bg-brand-orange border-brand-orange shadow-[0_0_8px_rgba(255,116,0,0.4)]' : 'group-hover:border-white/40'}`}>
+        <div className={`w-5 h-5 rounded-[4px] border border-brand-input-border flex items-center justify-center transition-all duration-200 ${checked ? 'bg-brand-orange border-brand-orange shadow-[0_0_8px_rgba(255,116,0,0.4)]' : 'group-hover:border-brand-orange'}`}>
             {checked && (
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />

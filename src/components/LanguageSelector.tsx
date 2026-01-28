@@ -1,21 +1,31 @@
 import React, { useState } from 'react';
-import { Language, languageNames, getCurrentLanguage, setCurrentLanguage } from '../lib/i18n';
-import { getTranslations } from '../lib/i18n';
+import { Language, languageNames, getCurrentLanguage, setCurrentLanguage, getTranslations } from '../lib/i18n';
 
 
 interface LanguageSelectorProps {
     onLanguageChange: (lang: Language) => void;
     variant?: 'default' | 'icon';
     direction?: 'up' | 'down';
+    onIconClick?: () => void;
+    currentLanguage?: Language;
 }
 
 export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
     onLanguageChange,
     variant = 'default',
-    direction = 'down'
+    direction = 'down',
+    onIconClick,
+    currentLanguage
 }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const [currentLang, setCurrentLang] = useState<Language>(getCurrentLanguage());
+    const [currentLang, setCurrentLang] = useState<Language>(currentLanguage || getCurrentLanguage());
+
+    React.useEffect(() => {
+        if (currentLanguage) {
+            setCurrentLang(currentLanguage);
+        }
+    }, [currentLanguage]);
+
     const handleLanguageSelect = (lang: Language) => {
         setCurrentLang(lang);
         setCurrentLanguage(lang);
@@ -29,9 +39,15 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
     return (
         <div className="relative">
             <button
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={() => {
+                    if (variant === 'icon' && onIconClick) {
+                        onIconClick();
+                    } else {
+                        setIsOpen(!isOpen);
+                    }
+                }}
                 className={`text-brand-orange hover:drop-shadow-[0_0_8px_var(--color-brand-orange)] transition-all flex items-center gap-2 ${variant === 'icon' ? '' : ''}`}
-                data-tooltip={t.selectLanguage}
+                data-tooltip={t.settings}
             >
                 <img src="icons/language.svg" alt="language" className="size-6" />
                 {variant === 'default' && (

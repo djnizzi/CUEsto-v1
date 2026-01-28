@@ -12,7 +12,8 @@ CUEsto is a dedicated tool for creating and editing CUE sheets with ease. Whethe
 - **Improved Browser**: Customized internal search browser for GnuDB with navigation controls (Back/Forward) and right-click support.
 - **CUE Viewer**: Inspect your raw CUE sheet with built-in syntax highlighting in a separate window.
 - **Custom Modals**: A fully branded modal system replaces standard OS dialogs for a cohesive, premium experience.
-- **Dark Mode**: A sleek, dark interface designed for focus.
+- **Dark & Light Modes**: Switch between a sleek dark interface or a clean light mode to suit your environment.
+- **Multilingual Support**: Fully localized interface in English, German, Spanish, French, and Italian.
 
 ## Getting Started
 
@@ -113,6 +114,12 @@ If you want to inspect or verify the raw CUE sheet text before saving:
    - **Cyan**: Artist information (`PERFORMER`).
    - **Yellow**: Track and Album titles (`TITLE`).
    - **Blue**: File references (`FILE`).
+
+### Settings and Personalization
+You can customize your CUEsto experience through the **Settings Modal**.
+1. Click the **Language/Settings** icon at the bottom right of the editor.
+2. **Language Selection**: Choose your preferred language (English, Deutsch, Español, Français, or Italiano). All interface elements and tooltips will update immediately.
+3. **Theme Toggle**: Switch between **Light Mode** (Sun icon) and **Dark Mode** (Moon icon). Your preference is saved automatically and persists when you restart the application.
 
 ## Tips
 - **Time Format**: Times are displayed in `MM:SS:FF` (Frames). CUE sheets use 75 frames per second.

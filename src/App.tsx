@@ -1,21 +1,22 @@
 import { CueEditor } from './components/CueEditor';
 import { BrowserShell } from './components/BrowserShell';
 import { CueViewer } from './components/CueViewer';
+import { ThemeProvider } from './lib/themeContext';
 
 function App() {
   const params = new URLSearchParams(window.location.search);
   const mode = params.get('mode');
 
-  if (mode === 'browser') {
-    return <BrowserShell />;
-  }
-
-  if (mode === 'viewer') {
-    return <CueViewer />;
-  }
-
   return (
-    <CueEditor />
+    <ThemeProvider>
+      {mode === 'browser' ? (
+        <BrowserShell />
+      ) : mode === 'viewer' ? (
+        <CueViewer />
+      ) : (
+        <CueEditor />
+      )}
+    </ThemeProvider>
   );
 }
 

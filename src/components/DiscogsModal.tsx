@@ -91,7 +91,7 @@ export const DiscogsModal: React.FC<DiscogsModalProps> = ({ isOpen, onClose, onS
 
                 {/* Input Fields Row */}
                 <div className="flex gap-4">
-                    <div className="flex-[2] border border-white/20 rounded-full px-3 py-1 flex items-center bg-transparent focus-within:border-brand-orange transition-colors">
+                    <div className="flex-[2] border border-brand-input-border rounded-full px-3 py-1 flex items-center bg-transparent focus-within:border-brand-orange transition-colors">
                         <input
                             disabled={isLoading}
                             type="text"
@@ -101,7 +101,7 @@ export const DiscogsModal: React.FC<DiscogsModalProps> = ({ isOpen, onClose, onS
                             placeholder={t.releaseCodePlaceholder}
                         />
                     </div>
-                    <div className="flex-1 border border-white/20 rounded-full px-3 py-1 flex items-center bg-transparent focus-within:border-brand-orange transition-colors">
+                    <div className="flex-1 border border-brand-input-border rounded-full px-3 py-1 flex items-center bg-transparent focus-within:border-brand-orange transition-colors">
                         <input
                             disabled={isLoading}
                             type="text"
@@ -190,7 +190,7 @@ const CheckboxItem: React.FC<CheckboxItemProps> = ({ label, checked, onChange, d
         className={`flex items-center gap-3 group ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
         onClick={disabled ? undefined : onChange}
     >
-        <div className={`w-5 h-5 rounded-[4px] border border-white/20 flex items-center justify-center transition-all duration-200 ${checked && !disabled ? 'bg-brand-orange border-brand-orange shadow-[0_0_8px_rgba(255,116,0,0.4)]' : 'group-hover:border-white/40'} ${disabled ? 'bg-transparent' : ''}`}>
+        <div className={`w-5 h-5 rounded-[4px] border border-brand-input-border flex items-center justify-center transition-all duration-200 ${checked && !disabled ? 'bg-brand-orange border-brand-orange shadow-[0_0_8px_rgba(255,116,0,0.4)]' : 'group-hover:border-brand-orange'} ${disabled ? 'bg-transparent' : ''}`}>
             {checked && (
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />

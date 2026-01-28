@@ -2,14 +2,14 @@
 > A modern, electron-based CUE sheet editor built for speed and aesthetics.
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-![Version](https://img.shields.io/badge/version-v1.0.12-green.svg)
+![Version](https://img.shields.io/badge/version-v1.0.14-green.svg)
 ![Status](https://img.shields.io/badge/status-active-success.svg)
 
-**CUEsto** is a powerful desktop application designed to make CUE sheet editing effortless. Built with modern web technologies, it offers a sleek dark-mode interface, real-time duration calculations, and intuitive metadata management.
+**CUEsto** is a powerful desktop application designed to make CUE sheet editing effortless. Built with modern web technologies, it offers a sleek interface with both light and dark modes, real-time duration calculations, and intuitive metadata management.
 
 ## Features
 
-- 🎨 **Modern UI**: A focused, dark-themed interface built with custom branded modals.
+- 🎨 **Modern UI**: A focused interface with support for **Light and Dark modes**, built with custom branded modals.
 - ⚡ **Fast & Responsive**: Built on Vite and React for instant feedback.
 - ✂️ **Audio Splitting**: Slice large audio files into individual tracks directly from the CUE sheet using bundled FFmpeg.
 - 🕵️ **CUE Viewer**: Inspect your raw CUE sheet with syntax highlighting in a dedicated window.

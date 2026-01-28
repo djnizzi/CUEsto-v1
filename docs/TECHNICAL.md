@@ -1,14 +1,15 @@
 # CUEsto Technical Documentation
 
 ## Overview
-CUEsto is a modern, Electron-based desktop application for editing CUE sheets. It is built with React, TypeScript, and Vite, leveraging TailwindCSS for styling. The application is designed to be fast, responsive, and aesthetically pleasing with a dark-themed UI.
+CUEsto is a modern, Electron-based desktop application for editing CUE sheets. It is built with React, TypeScript, and Vite, leveraging TailwindCSS for styling. The application is designed to be fast, responsive, and aesthetically pleasing with support for both **Dark and Light modes**.
 
 ## Tech Stack
 - **Runtime**: [Electron](https://www.electronjs.org/)
 - **Frontend Framework**: [React](https://react.dev/)
 - **Build Tool**: [Vite](https://vitejs.dev/)
 - **Language**: [TypeScript](https://www.typescriptlang.org/)
-- **Styling**: [TailwindCSS](https://tailwindcss.com/)
+- **Styling**: [TailwindCSS](https://tailwindcss.com/) (v4 with CSS variables for dynamic themes)
+- **Localization**: Custom i18n implementation with support for 5 languages.
 - **Audio Processing**: [FFmpeg](https://ffmpeg.org/) (bundled via `ffmpeg-static`)
 - **Linting**: ESLint
 
@@ -41,6 +42,8 @@ CUEsto is a modern, Electron-based desktop application for editing CUE sheets. I
 - **`TrackRow.tsx`**: Represents a single track in the cue sheet. Contains inputs for title, performer, start time, and duration.
 - **`MetadataHeader.tsx`**: Displays and edits global CUE properties. Includes the audio file icon and total duration display.
 - **`TimeInput.tsx`**: A specialized input component for handling timestamp formats (MM:SS:FF). Supports a read-only mode for calculated fields.
+- **`SettingsModal.tsx`**: Manages application preferences including language selection and theme toggling (Light/Dark).
+- **`LanguageSelector.tsx`**: A specialized icon-based selector that opens the settings modal and provides localized tooltips.
 
 ### Utilities
 - **`cueParser.ts`**: Handles parsing of .cue files and generation of output. Now supports `REM TOTAL DURATION`, `REM GNUCDID`, and `REM DISCOGS` for enhanced metadata persistence.
@@ -50,6 +53,8 @@ CUEsto is a modern, Electron-based desktop application for editing CUE sheets. I
 - **`timeUtils.ts`**: Helper functions for frame/time conversions (75 frames per second). Now includes `parseAudacityLabels` for extracting start times and labels from Audacity export files.
 - **Audio Engine**: Uses `ffmpeg-static` in the main process to handle audio splitting. The binary is unpacked from the ASAR during production builds to ensure compatibility.
 - **Audio Metadata**: Uses `music-metadata` in the main process (via `dialog:openAudioFile` IPC) to extract duration and tags (Artist, Title, Year, Genre). Now includes multi-artist support.
+- **`i18n.ts`**: Provides a robust translation system (`t()` function) and handles persistence of the user's language preference.
+- **`themeContext.tsx`**: Manages the application-wide theme state, applying the `.dark` class to the document root and persisting the setting in local storage.
 
 ### State Management
 State is largely local to `CueEditor.tsx`, with the `CueSheet` object serving as the single source of truth for the currently open file. Changes flow down to child components via props, and updates bubble up via callbacks.

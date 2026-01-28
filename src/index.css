@@ -2,23 +2,23 @@
 @import "tailwindcss";
 
 @theme {
+  /* Light mode colors */
   --color-brand-orange: #FF7400;
-  --color-brand-dark: #3A3632;
-  --color-brand-darker: #3A3632;
-  --color-brand-input: #333333;
-  --color-brand-text: #E8D7C9;
-  --color-brand-muted: #E8D7C9;
-  --color-brand-surface: #34302C;
-  --color-brand-header: #34302C;
-  --color-brand-muted-text: #787169;
-  /* Define placeholder here for potential utility usage, but we rely on root var below */
-  --color-brand-placeholder: #787169;
+  --color-brand-dark: #E8D7C9;
+  --color-brand-darker: #E8D7C9;
+  --color-brand-input: #E8D7C9;
+  --color-brand-text: #3A3632;
+  --color-brand-muted: #3A3632;
+  --color-brand-surface: #E8D7C9;
+  --color-brand-header: #E8D7C9;
+  --color-brand-muted-text: #b2a89c;
+  --color-brand-placeholder: #b2a89c;
+  --color-brand-subheader: #b2a89c;
+  --color-brand-input-border: #b2a89c;
 
   --font-size-modal-body: 15px;
   --font-size-modal-small: 13px;
   --font-size-tiny: 11px;
-
-  --color-brand-subheader: #787169;
 
   --radius-modal: 32px;
   --radius-dropdown: 16px;
@@ -30,6 +30,21 @@
   --color-syntax-rem: #00ff00;
   --color-syntax-title: #fff000;
   --color-syntax-track: #ff2500;
+}
+
+.dark {
+  /* Dark mode overrides */
+  --color-brand-dark: #3A3632;
+  --color-brand-darker: #3A3632;
+  --color-brand-input: #3A3632;
+  --color-brand-text: #E8D7C9;
+  --color-brand-muted: #E8D7C9;
+  --color-brand-surface: #3A3632;
+  --color-brand-header: #3A3632;
+  --color-brand-muted-text: #787169;
+  --color-brand-placeholder: #787169;
+  --color-brand-subheader: #787169;
+  --color-brand-input-border: #787169;
 }
 
 /* Use a custom name to avoid conflicts with locally installed fonts */

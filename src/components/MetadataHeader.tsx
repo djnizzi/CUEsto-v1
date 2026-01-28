@@ -20,7 +20,7 @@ interface MetadataHeaderProps {
 
 const InputGroup = ({ label, value, field, onUpdate }: { label: string, value: string, field: string, onUpdate: (field: string, value: string) => void }) => (
     <div className="flex flex-col flex-1 mx-2">
-        <div className="border border-white/20 rounded-full px-3 py-1 flex items-center bg-transparent focus-within:border-brand-orange transition-colors">
+        <div className="border border-brand-input-border rounded-full px-3 py-1 flex items-center bg-transparent focus-within:border-brand-orange transition-colors">
             <input
                 type="text"
                 value={value}
@@ -104,7 +104,7 @@ export const MetadataHeader: React.FC<MetadataHeaderProps> = ({
             </div>
 
             <div className="w-full">
-                <div className={`mx-2 border rounded-full px-3 py-1 flex items-center bg-transparent transition-colors mb-2 ${isAudioResolved ? 'border-white/20 focus-within:border-brand-orange' : (showAudioError ? 'border-red-500/50 focus-within:border-red-500' : 'border-white/20 focus-within:border-brand-orange')}`}>
+                <div className={`mx-2 border rounded-full px-3 py-1 flex items-center bg-transparent transition-colors mb-2 ${isAudioResolved ? 'border-brand-input-border focus-within:border-brand-orange' : (showAudioError ? 'border-red-500/50 focus-within:border-red-500' : 'border-brand-input-border focus-within:border-brand-orange')}`}>
                     <input
                         type="text"
                         value={fileName}

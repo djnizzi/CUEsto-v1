@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { useTheme } from '../lib/themeContext';
 
 export const BrowserShell: React.FC = () => {
+    const { theme } = useTheme();
     const [canGoBack, setCanGoBack] = useState(false);
     const [canGoForward, setCanGoForward] = useState(false);
     const [title, setTitle] = useState('Loading...');
@@ -95,7 +97,7 @@ export const BrowserShell: React.FC = () => {
                         if (url.includes('1001tracklists.com')) {
                             return <img src="images/tracklists.svg" alt="1001Tracklists" className="w-[24px] h-[19.75px]" />;
                         }
-                        return <img src="images/logo.png" alt="Logo" className="h-6 w-auto" />;
+                        return <img src={`images/logo${theme === 'light' ? '-light' : ''}.png`} alt="Logo" className="h-6 w-auto" />;
                     })()}
                 </div>
             </div>

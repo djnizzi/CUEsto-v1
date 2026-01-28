@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+    darkMode: 'class',
     content: [
         "./index.html",
         "./src/**/*.{js,ts,jsx,tsx}",
@@ -9,11 +10,12 @@ export default {
             colors: {
                 brand: {
                     orange: '#ff7400',
-                    dark: '#3A3632',
-                    darker: '#3A3632',
-                    input: '#333333',
-                    text: '#E8D7C9',
-                    muted: '#E8D7C9',
+                    dark: 'var(--color-brand-dark)',
+                    darker: 'var(--color-brand-darker)',
+                    input: 'var(--color-brand-input)',
+                    text: 'var(--color-brand-text)',
+                    muted: 'var(--color-brand-muted)',
+                    'input-border': 'var(--color-brand-input-border)',
                 }
             }
         },
